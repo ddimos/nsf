@@ -2,6 +2,9 @@
 
 #include <SFML/Network.hpp>
 
+namespace nsf
+{
+
 enum class InternalPacketType : sf::Uint8
 {
     None,
@@ -16,3 +19,5 @@ enum class InternalPacketType : sf::Uint8
     INTERNAL_SESSION_ON_LEAVE,
     USER_PACKET
 };
+
+} // namespace nsf

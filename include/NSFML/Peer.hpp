@@ -1,13 +1,16 @@
 #pragma once
-#include "NetworkAddress.h"
-#include "NetworkMessage.h"
-#include "NetworkUtils.h"
-#include "Transport.h"
-#include "Connection.h"
+#include "NSFML/NetworkAddress.hpp"
+#include "NSFML/NetworkMessage.hpp"
+#include "NSFML/NetworkUtils.hpp"
+#include "NSFML/Transport.hpp"
+#include "NSFML/Connection.hpp"
 #include <queue>
 #include <deque>
 #include <map>
 
+
+namespace nsf
+{
 
 class Peer : public Connection
 {
@@ -54,3 +57,5 @@ private:
     // std::queue<NetworkMessage> m_reliableMessagesToSend;     
     // std::queue<NetworkMessage> m_unreliableMessagesToSend;     
 };
+
+} // namespace nsf

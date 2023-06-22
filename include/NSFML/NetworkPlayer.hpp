@@ -1,6 +1,9 @@
 #pragma once 
 #include <string>
-#include "NetworkUtils.h"
+#include "NSFML/NetworkUtils.hpp"
+
+namespace nsf
+{
 
 class Network;
 class Peer;
@@ -32,3 +35,5 @@ private:
 
     bool m_isLeft = false;
 };
+
+} // namespace nsf

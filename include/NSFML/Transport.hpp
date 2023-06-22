@@ -1,7 +1,10 @@
 #pragma once
 #include <SFML/Network.hpp>
-#include "NetworkAddress.h"
+#include "NSFML/NetworkAddress.hpp"
 #include <vector>
+
+namespace nsf
+{
 
 class Transport
 {
@@ -26,3 +29,5 @@ private:
     NetworkAddress m_localAddress = {};
     NetworkAddress m_publicAddress = {};
 };
+
+} // namespace nsf

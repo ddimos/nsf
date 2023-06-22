@@ -1,7 +1,10 @@
 #pragma once
 #include <SFML/Network.hpp>
-#include "NetworkAddress.h"
-#include "Transport.h"
+#include "NSFML/NetworkAddress.hpp"
+#include "NSFML/Transport.hpp"
+
+namespace nsf
+{
 
 class Connection
 {
@@ -47,4 +50,4 @@ private:
     float m_heartbeat = HEARTBEAT_s;
 };
 
-
+} // namespace nsf

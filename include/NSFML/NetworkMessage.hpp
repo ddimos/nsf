@@ -1,7 +1,10 @@
 #pragma once 
-#include "NetworkUtils.h"
-#include "InternalPacketType.h"
+#include "NSFML/NetworkUtils.hpp"
+#include "NSFML/InternalPacketType.hpp"
 #include <SFML/Network.hpp>
+
+namespace nsf
+{
 
 class Network;
 class Peer;
@@ -52,3 +55,5 @@ private:
     sf::Packet m_data;
     InternalPacketType m_messageType = InternalPacketType::USER_PACKET;// ? messageType
 };
+
+} // namespace nsf

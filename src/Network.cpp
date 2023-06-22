@@ -1,7 +1,10 @@
-#include "Network.h"
-#include "Utils/Log.h"
-#include "InternalPacketType.h"
-#include "PacketHeader.h"
+// #include "Utils/Log.h"
+#include "NSFML/Network.hpp"
+#include "NSFML/InternalPacketType.hpp"
+#include "NSFML/PacketHeader.hpp"
+
+namespace nsf
+{
 
 
 Network* Network::ms_network = nullptr;
@@ -77,8 +80,8 @@ void Network::Send(const NetworkMessage& _message)
         {
             if (peer.IsUp())
                 peer.Send(_message);
-            else
-                LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
+            //else
+                //LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
         }
     }
     else if(_message.IsExcludeBroadcast())
@@ -90,8 +93,8 @@ void Network::Send(const NetworkMessage& _message)
             
             if (peer.IsUp())
                 peer.Send(_message);
-            else
-                LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
+            //else
+                //LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
         }
     }
     else
@@ -99,8 +102,8 @@ void Network::Send(const NetworkMessage& _message)
         Peer* peer = getPeer(_message.GetPeerId());
         if (peer && peer->IsUp())
             peer->Send(_message);
-        else
-            LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
+        //else
+            //LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
     }
 }
 
@@ -145,16 +148,16 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
     {
         if (senderPeer)
         {
-            LOG_ERROR("CONNECT_REQUEST received again from " + _sender.toString());
+            //LOG_ERROR("CONNECT_REQUEST received again from " + _sender.toString());
             break;
         }
         if (!m_isSessionMaster)
         {
-            LOG_ERROR("Cannot process CONNECT_REQUEST recieved from " + _sender.toString() + " because not the session master");
+            //LOG_ERROR("Cannot process CONNECT_REQUEST recieved from " + _sender.toString() + " because not the session master");
             break;
         }
         
-        LOG("CONNECT_REQUEST received from " + _sender.toString());
+        //LOG("CONNECT_REQUEST received from " + _sender.toString());
 
         Peer& peer = createPeerInternal(_sender, true);
         onConnect(peer);
@@ -164,15 +167,15 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
     {
         if (!senderPeer)
         {
-            LOG_ERROR("CONNECT_ACCEPT received from " + _sender.toString() + " who we didn't ask");
+            //LOG_ERROR("CONNECT_ACCEPT received from " + _sender.toString() + " who we didn't ask");
             break;
         }
         else if (senderPeer->GetStatus() != Peer::Status::CONNECTING)
         {
-            LOG_ERROR("The status of " + _sender.toString() + " isn't CONNECTING");
+            //LOG_ERROR("The status of " + _sender.toString() + " isn't CONNECTING");
             break;
         }
-        LOG("CONNECT_ACCEPT received from " + _sender.toString());
+        //LOG("CONNECT_ACCEPT received from " + _sender.toString());
         senderPeer->OnConnectionAcceptReceived();
         onConnect(*senderPeer);
         break;
@@ -181,15 +184,15 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
     {
         if (!senderPeer)
         {
-            LOG_ERROR("DISCONNECT received from " + _sender.toString() + " who is not in the list of peers");
+            //LOG_ERROR("DISCONNECT received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
         else if (senderPeer->GetStatus() == Peer::Status::DOWN)
         {
-            LOG_ERROR("The status of " + _sender.toString() + " is already DOWN");
+            //LOG_ERROR("The status of " + _sender.toString() + " is already DOWN");
             break;
         }
-        LOG("DISCONNECT received from " + _sender.toString());
+        //LOG("DISCONNECT received from " + _sender.toString());
         senderPeer->Close(true);
         break;
     }
@@ -197,37 +200,37 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
     {
         if (!senderPeer)
         {
-            LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
+            //LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
         else if (senderPeer->GetStatus() == Peer::Status::CONNECTING)
         {
             senderPeer->OnConnectionAcceptReceived();
             onConnect(*senderPeer);
-            LOG("Received a heartbeat from " + _sender.toString() + " while waiting for connection accept");
+            //LOG("Received a heartbeat from " + _sender.toString() + " while waiting for connection accept");
         }
         else if (!senderPeer->IsUp())
         {
-            LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
+            //LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
             break;
         }
         senderPeer->OnHeartbeatReceived();
-        LOG_DEBUG("Received a heartbeat from " + _sender.toString());
+        //LOG_DEBUG("Received a heartbeat from " + _sender.toString());
         break;
     }
     case InternalPacketType::INTERNAL_AR:
     {
         if (!senderPeer)
         {
-            LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
+            //LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
         else if (!senderPeer->IsUp())
         {
-            LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
+            //LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
             break;
         }
-        LOG_DEBUG("AR received from " + _sender.toString() + " seqNum: " + tstr(header.sequenceNum));
+        //LOG_DEBUG("AR received from " + _sender.toString() + " seqNum: " + tstr(header.sequenceNum));
 
         senderPeer->OnAcknowledgmentReceived(header.sequenceNum);
 
@@ -242,15 +245,15 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
     {
         if (!senderPeer)
         {
-            LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
+            //LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
         else if (!senderPeer->IsUp())
         {
-            LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
+            //LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
             break;
         }
-        LOG_DEBUG("Received from " + _sender.toString());
+        //LOG_DEBUG("Received from " + _sender.toString());
 
         NetworkMessage message;
         message.m_data = std::move(_packet);
@@ -295,10 +298,10 @@ void Network::connect(NetworkAddress _addressToConnect)
 {
     if (getPeer(_addressToConnect) != nullptr)
     {
-        LOG_ERROR("Don't connect to " + _addressToConnect.toString() + " because it is already connected.");
+        //LOG_ERROR("Don't connect to " + _addressToConnect.toString() + " because it is already connected.");
         return;
     }
-    LOG("Connect to " + _addressToConnect.toString());
+    //LOG("Connect to " + _addressToConnect.toString());
     createPeerInternal(_addressToConnect, false);
 }
 
@@ -307,7 +310,7 @@ void Network::disconnect()
     for (Peer& peer : m_peers)
         peer.Close();
     
-    LOG("Disconnect");
+    //LOG("Disconnect");
 
     if (m_isSessionMaster && m_peers.empty())
     {
@@ -344,7 +347,7 @@ void Network::onConnect(Peer& _peer)
     NetworkMessage message(m_hostPeerId, true);
     message.m_messageType = InternalPacketType::INTERNAL_SESSION_JOIN_REQUEST;
     message.Write(m_localPlayer->m_name);
-    LOG_DEBUG("Send a join session request to " + tstr(_peer.GetPeerId()));  
+    //LOG_DEBUG("Send a join session request to " + tstr(_peer.GetPeerId()));  
     Send(message);
 }
 
@@ -359,7 +362,7 @@ void Network::onDisconnect(const Peer& _peer)
                 NetworkMessage message(true);
                 message.m_messageType = InternalPacketType::INTERNAL_SESSION_ON_LEAVE;
                 message.Write(player.m_id);
-                LOG_DEBUG("Send a session leave message");  
+                //LOG_DEBUG("Send a session leave message");  
                 Send(message);
                 m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_LEAVE, player));
                 player.m_isLeft = true;
@@ -381,7 +384,7 @@ void Network::onDisconnect(const Peer& _peer)
 Peer& Network::createPeerInternal(NetworkAddress _addressToConnect, bool _isCreatingFromRequest)
 {
     PeerID peerId = ++m_peerIdGenerator;
-    LOG("Create a new peer. id: " + tstr(peerId) + " address: " + _addressToConnect.toString());
+    //LOG("Create a new peer. id: " + tstr(peerId) + " address: " + _addressToConnect.toString());
     return m_peers.emplace_back(Peer(*this, _addressToConnect, peerId, _isCreatingFromRequest));
 }
 
@@ -395,10 +398,10 @@ void Network::processSessionJoinRequest(NetworkMessage& _message, Peer* _peer)
 {
     if (!m_isSessionMaster)
     {
-        LOG_ERROR("Cannot process the JoinRequest recieved from " + tstr(_message.GetPeerId()) + " because not the session master");
+        //LOG_ERROR("Cannot process the JoinRequest recieved from " + tstr(_message.GetPeerId()) + " because not the session master");
         return;
     }
-    LOG_DEBUG("JoinRequest received from " + tstr(_message.GetPeerId()));
+    //LOG_DEBUG("JoinRequest received from " + tstr(_message.GetPeerId()));
 
     std::string newPlayerName;
     _message.Read(newPlayerName);
@@ -414,7 +417,7 @@ void Network::processSessionJoinRequest(NetworkMessage& _message, Peer* _peer)
         message.Write(player.m_id);
     }
     
-    LOG_DEBUG("Send a join session accept to " + tstr(_peer->GetPeerId()));  
+    //LOG_DEBUG("Send a join session accept to " + tstr(_peer->GetPeerId()));  
     Send(message);   
 
     NetworkMessage messageOnJoin(NetworkMessage::Type::EXCLUDE_BRODCAST, _peer->GetPeerId(), true);
@@ -422,7 +425,7 @@ void Network::processSessionJoinRequest(NetworkMessage& _message, Peer* _peer)
     messageOnJoin.Write(newPlayerName);
     messageOnJoin.Write(newPlayerId);
      
-    LOG_DEBUG("Send a session join message");  
+    //LOG_DEBUG("Send a session join message");  
     Send(messageOnJoin);   
 
     auto* player = createPlayerIntrernal(newPlayerName, newPlayerId, false);
@@ -434,11 +437,11 @@ void Network::processSessionJoinAccept(NetworkMessage& _message)
 {
     if (m_isSessionMaster)
     {
-        LOG_ERROR("The session master should not receive a JoinAccept");
+        //LOG_ERROR("The session master should not receive a JoinAccept");
         return;
     }
 
-    LOG_DEBUG("JoinAccept received from " + tstr(_message.GetPeerId()));
+    //LOG_DEBUG("JoinAccept received from " + tstr(_message.GetPeerId()));
 
     std::string playerName;
     PlayerID playerId;
@@ -447,7 +450,7 @@ void Network::processSessionJoinAccept(NetworkMessage& _message)
 
     if (m_localPlayer->m_name != playerName)
     {
-        LOG_ERROR("The local player name is not equal to the one received from the host: " + m_localPlayer->m_name + " != " + playerName);
+        //LOG_ERROR("The local player name is not equal to the one received from the host: " + m_localPlayer->m_name + " != " + playerName);
         return;
     }
     m_localPlayer->m_id = playerId;
@@ -465,11 +468,11 @@ void Network::processSessionOnJoin(NetworkMessage& _message)
 {
     if (m_isSessionMaster)
     {
-        LOG_ERROR("The session master should not receive a JoinAccept");
+        //LOG_ERROR("The session master should not receive a JoinAccept");
         return;
     }
 
-    LOG_DEBUG("OnJoin received");
+    //LOG_DEBUG("OnJoin received");
 
     std::string playerName;
     PlayerID playerId;
@@ -484,11 +487,11 @@ void Network::processSessionOnLeave(NetworkMessage& _message)
 {
     if (m_isSessionMaster)
     {
-        LOG_ERROR("The session master should not receive a JoinAccept");
+        //LOG_ERROR("The session master should not receive a JoinAccept");
         return;
     }
 
-    LOG_DEBUG("OnLeave received");
+    //LOG_DEBUG("OnLeave received");
 
     PlayerID playerId;
     _message.Read(playerId);
@@ -504,3 +507,4 @@ void Network::processSessionOnLeave(NetworkMessage& _message)
     }
 }
     
+} // namespace nsf

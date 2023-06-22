@@ -1,15 +1,18 @@
 #pragma once
 
-#include "NetworkAddress.h"
-#include "NetworkMessage.h"
-#include "NetworkEvent.h"
-#include "NetworkPlayer.h"
-#include "NetworkUtils.h"
-#include "Peer.h"
-#include "Transport.h"
+#include "NSFML/NetworkAddress.hpp"
+#include "NSFML/NetworkMessage.hpp"
+#include "NSFML/NetworkEvent.hpp"
+#include "NSFML/NetworkPlayer.hpp"
+#include "NSFML/NetworkUtils.hpp"
+#include "NSFML/Peer.hpp"
+#include "NSFML/Transport.hpp"
 
 #include <queue>
 #include <vector>
+
+namespace nsf
+{
 
 class Network : public Transport
 {
@@ -77,3 +80,5 @@ private:
 
     std::string m_pendingPlayerToJoin;
 };
+
+} // namespace nsf

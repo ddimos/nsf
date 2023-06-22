@@ -1,7 +1,10 @@
 #pragma once
 
-#include "NetworkAddress.h"
-#include "NetworkPlayer.h"
+#include "NSFML/NetworkAddress.hpp"
+#include "NSFML/NetworkPlayer.hpp"
+
+namespace nsf
+{
 
 struct NetworkEvent
 {
@@ -30,3 +33,5 @@ struct NetworkEvent
 
     NetworkAddress sender;
 };
+
+} // namespace nsf

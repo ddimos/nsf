@@ -1,6 +1,9 @@
-#include "Transport.h"
-#include "Utils/Log.h"
+#include "NSFML/Transport.hpp"
+// #include "Utils/Log.h"
 #include <algorithm>
+
+namespace nsf
+{
 
 Transport::Transport(unsigned short _port)
 {
@@ -25,7 +28,7 @@ void Transport::Update()
         }
         else
         {
-            LOG_ERROR("The status of the socket: " + tstr(status));
+            //LOG_ERROR("The status of the socket: " + tstr(status));
             break;
         }       
     }
@@ -48,7 +51,7 @@ void Transport::createHost(unsigned short _port)
     
     if (attemptsLeft < 0)
     {
-        LOG_ERROR("Couldn't bind a port");
+        //LOG_ERROR("Couldn't bind a port");
         return;
     }
 
@@ -59,7 +62,9 @@ void Transport::createHost(unsigned short _port)
     m_publicAddress.address = sf::IpAddress::getPublicAddress();
     m_publicAddress.port = m_localSocket.getLocalPort();
 
-    LOG("\n\tHost created on a port:\t" + tstr(m_localSocket.getLocalPort()) 
-     + "\n\tLocal address:\t\t" +  sf::IpAddress::getLocalAddress().toString()
-     + "\n\tGlobal:\t\t\t" + m_publicAddress.address.toString());
+    //LOG("\n\tHost created on a port:\t" + tstr(m_localSocket.getLocalPort()) 
+    //  + "\n\tLocal address:\t\t" +  sf::IpAddress::getLocalAddress().toString()
+    //  + "\n\tGlobal:\t\t\t" + m_publicAddress.address.toString());
 }
+
+} // namespace nsf

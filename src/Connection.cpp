@@ -1,7 +1,10 @@
-#include "Connection.h"
-#include "Utils/Log.h"
-#include "InternalPacketType.h"
-#include "PacketHeader.h"
+#include "NSFML/Connection.hpp"
+// #include "Utils/Log.h"
+#include "NSFML/InternalPacketType.hpp"
+#include "NSFML/PacketHeader.hpp"
+
+namespace nsf
+{
 
 Connection::Connection(Transport& _transport, NetworkAddress _addressToConnect, bool _isCreatingFromRequest)
     : m_address(_addressToConnect)
@@ -23,7 +26,7 @@ Connection::Connection(Transport& _transport, NetworkAddress _addressToConnect, 
     }
     header.Serialize(packet);
     Send(packet, _addressToConnect);
-    LOG_DEBUG("Send a connect request to " + m_address.toString());
+    //LOG_DEBUG("Send a connect request to " + m_address.toString());
 }
 
 void Connection::Close(bool _forcibly /*= false*/)
@@ -38,7 +41,7 @@ void Connection::Close(bool _forcibly /*= false*/)
         header.Serialize(packet);
         Send(packet, m_address);
     } 
-    LOG_DEBUG("Disconnect from " + m_address.toString() + (_forcibly?" f":" g"));
+    //LOG_DEBUG("Disconnect from " + m_address.toString() + (_forcibly?" f":" g"));
 }
 
 void Connection::Update(float _dt)
@@ -51,7 +54,7 @@ void Connection::Update(float _dt)
             --m_connectionAttemptsLeft;
             if (m_connectionAttemptsLeft < 0)
             {
-                LOG("No atempts left, disconnect peer " + m_address.toString());
+                //LOG("No atempts left, disconnect peer " + m_address.toString());
                 m_status = Status::DOWN;
             }
             else
@@ -60,7 +63,7 @@ void Connection::Update(float _dt)
                 PacketHeader header;
                 header.type = InternalPacketType::INTERNAL_CONNECT_REQUEST; 
                 m_timeout = TIME_TO_RETRY_CONNECT_s;
-                LOG_DEBUG("Send a connect request to " + m_address.toString());  
+                //LOG_DEBUG("Send a connect request to " + m_address.toString());  
                 header.Serialize(packet);
                 Send(packet, m_address);
             }
@@ -70,7 +73,7 @@ void Connection::Update(float _dt)
     {
         if (m_timeout <= 0.f)
         {       
-            LOG("Disconnect peer " + m_address.toString() + " because didn't receive a heartbeat");
+            //LOG("Disconnect peer " + m_address.toString() + " because didn't receive a heartbeat");
             m_status = Status::DOWN;
         }
         else
@@ -81,7 +84,7 @@ void Connection::Update(float _dt)
                 sf::Packet packet;
                 PacketHeader header;
                 header.type = InternalPacketType::INTERNAL_HEARTBEAT; 
-                LOG_DEBUG("Send a heartbeat to " + m_address.toString()); 
+                //LOG_DEBUG("Send a heartbeat to " + m_address.toString()); 
                 header.Serialize(packet);
                 Send(packet, m_address);   
                 m_heartbeat = HEARTBEAT_s;
@@ -105,3 +108,5 @@ void Connection::OnHeartbeatReceived()
 {
     m_timeout = HEARTBEAT_TIMEOUT_s;
 }
+
+} // namespace nsf

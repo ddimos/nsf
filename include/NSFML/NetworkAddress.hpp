@@ -3,6 +3,9 @@
 #include <SFML/Network.hpp>
 #include <string>
 
+namespace nsf
+{
+
 struct NetworkAddress
 {
     NetworkAddress() = default;
@@ -23,3 +26,5 @@ inline bool operator!=(const NetworkAddress& _lhs, const NetworkAddress& _rhs)
 {
     return !(_lhs == _rhs);
 }
+
+} // namespace nsf

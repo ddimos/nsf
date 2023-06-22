@@ -1,5 +1,8 @@
 #pragma once
-#include "InternalPacketType.h"
+#include "NSFML/InternalPacketType.hpp"
+
+namespace nsf
+{
 
 struct PacketHeader
 {
@@ -28,3 +31,5 @@ struct PacketHeader
     bool isReliable = false;
     sf::Uint32 sequenceNum = 0;
 };
+
+} // namespace nsf
