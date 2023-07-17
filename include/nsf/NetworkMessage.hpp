@@ -1,6 +1,6 @@
 #pragma once 
-#include "NSFML/NetworkUtils.hpp"
-#include "NSFML/InternalPacketType.hpp"
+#include "nsf/NetworkUtils.hpp"
+#include "nsf/InternalPacketType.hpp"
 #include <SFML/Network.hpp>
 
 namespace nsf

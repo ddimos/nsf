@@ -1,6 +1,6 @@
 #pragma once
 #include <SFML/Network.hpp>
-#include "NSFML/NetworkAddress.hpp"
+#include "nsf/NetworkAddress.hpp"
 #include <vector>
 
 namespace nsf

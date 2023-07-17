@@ -1,9 +1,9 @@
 #pragma once
-#include "NSFML/NetworkAddress.hpp"
-#include "NSFML/NetworkMessage.hpp"
-#include "NSFML/NetworkUtils.hpp"
-#include "NSFML/Transport.hpp"
-#include "NSFML/Connection.hpp"
+#include "nsf/NetworkAddress.hpp"
+#include "nsf/NetworkMessage.hpp"
+#include "nsf/NetworkUtils.hpp"
+#include "nsf/Transport.hpp"
+#include "nsf/Connection.hpp"
 #include <queue>
 #include <deque>
 #include <map>

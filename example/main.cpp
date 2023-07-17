@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <NSFML/Network.hpp>
+#include <nsf/Network.hpp>
 
 int main()
 {

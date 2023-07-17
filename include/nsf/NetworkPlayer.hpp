@@ -1,6 +1,6 @@
 #pragma once 
 #include <string>
-#include "NSFML/NetworkUtils.hpp"
+#include "nsf/NetworkUtils.hpp"
 
 namespace nsf
 {

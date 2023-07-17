@@ -1,2 +1,2 @@
-# NSFML
+# nsf
 Network SFML

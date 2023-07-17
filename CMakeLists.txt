@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.15)
 
-project("NSFML"
+project("nsf"
     VERSION 0.1.0
     DESCRIPTION "Network SFML"
     )
 
 find_package(SFML 2.5 COMPONENTS network REQUIRED)
 
-option(NSFML_BUILD_EXAMPLE "Build the NSFML example" ON)
+option(NSF_BUILD_EXAMPLE "Build the nsf example" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if (NSFML_BUILD_EXAMPLE)
+if (NSF_BUILD_EXAMPLE)
     add_subdirectory(example)
 endif()
 
@@ -37,18 +37,18 @@ target_include_directories(${PROJECT_NAME}
 )
 
 set(public_headers
-    include/NSFML/Network.hpp
-    include/NSFML/Connection.hpp
-    include/NSFML/InternalPacketType.hpp
-    include/NSFML/NetworkAddress.hpp
-    include/NSFML/NetworkEvent.hpp
-    include/NSFML/Network.hpp
-    include/NSFML/NetworkMessage.hpp
-    include/NSFML/NetworkPlayer.hpp
-    include/NSFML/NetworkUtils.hpp
-    include/NSFML/PacketHeader.hpp
-    include/NSFML/Peer.hpp
-    include/NSFML/Transport.hpp
+    include/nsf/Network.hpp
+    include/nsf/Connection.hpp
+    include/nsf/InternalPacketType.hpp
+    include/nsf/NetworkAddress.hpp
+    include/nsf/NetworkEvent.hpp
+    include/nsf/Network.hpp
+    include/nsf/NetworkMessage.hpp
+    include/nsf/NetworkPlayer.hpp
+    include/nsf/NetworkUtils.hpp
+    include/nsf/PacketHeader.hpp
+    include/nsf/Peer.hpp
+    include/nsf/Transport.hpp
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX)

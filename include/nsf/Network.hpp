@@ -1,12 +1,12 @@
 #pragma once
 
-#include "NSFML/NetworkAddress.hpp"
-#include "NSFML/NetworkMessage.hpp"
-#include "NSFML/NetworkEvent.hpp"
-#include "NSFML/NetworkPlayer.hpp"
-#include "NSFML/NetworkUtils.hpp"
-#include "NSFML/Peer.hpp"
-#include "NSFML/Transport.hpp"
+#include "nsf/NetworkAddress.hpp"
+#include "nsf/NetworkMessage.hpp"
+#include "nsf/NetworkEvent.hpp"
+#include "nsf/NetworkPlayer.hpp"
+#include "nsf/NetworkUtils.hpp"
+#include "nsf/Peer.hpp"
+#include "nsf/Transport.hpp"
 
 #include <queue>
 #include <vector>

@@ -1,6 +1,6 @@
 // #include "Utils/Log.h"
-#include "NSFML/Peer.hpp"
-#include "NSFML/PacketHeader.hpp"
+#include "nsf/Peer.hpp"
+#include "nsf/PacketHeader.hpp"
 #include <algorithm>
 
 namespace nsf

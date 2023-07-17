@@ -1,7 +1,7 @@
 #pragma once
 
-#include "NSFML/NetworkAddress.hpp"
-#include "NSFML/NetworkPlayer.hpp"
+#include "nsf/NetworkAddress.hpp"
+#include "nsf/NetworkPlayer.hpp"
 
 namespace nsf
 {

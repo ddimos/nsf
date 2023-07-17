@@ -1,5 +1,5 @@
 #pragma once
-#include "NSFML/InternalPacketType.hpp"
+#include "nsf/InternalPacketType.hpp"
 
 namespace nsf
 {

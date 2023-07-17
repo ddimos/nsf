@@ -1,7 +1,7 @@
-#include "NSFML/Connection.hpp"
+#include "nsf/Connection.hpp"
 // #include "Utils/Log.h"
-#include "NSFML/InternalPacketType.hpp"
-#include "NSFML/PacketHeader.hpp"
+#include "nsf/InternalPacketType.hpp"
+#include "nsf/PacketHeader.hpp"
 
 namespace nsf
 {
