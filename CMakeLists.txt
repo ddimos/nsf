@@ -21,7 +21,7 @@ add_library(${PROJECT_NAME} STATIC)
 target_sources(${PROJECT_NAME}
     PRIVATE
         src/Connection.cpp
-        src/Network.cpp
+        src/NSFImpl.cpp
         src/Peer.cpp
         src/Transport.cpp
 )
@@ -37,18 +37,12 @@ target_include_directories(${PROJECT_NAME}
 )
 
 set(public_headers
-    include/nsf/Network.hpp
-    include/nsf/Connection.hpp
-    include/nsf/InternalPacketType.hpp
     include/nsf/NetworkAddress.hpp
     include/nsf/NetworkEvent.hpp
-    include/nsf/Network.hpp
     include/nsf/NetworkMessage.hpp
     include/nsf/NetworkPlayer.hpp
-    include/nsf/NetworkUtils.hpp
-    include/nsf/PacketHeader.hpp
-    include/nsf/Peer.hpp
-    include/nsf/Transport.hpp
+    include/nsf/NSF.hpp
+    include/nsf/Types.hpp
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX)

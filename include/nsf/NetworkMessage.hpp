@@ -1,13 +1,9 @@
 #pragma once 
-#include "nsf/NetworkUtils.hpp"
-#include "nsf/InternalPacketType.hpp"
+#include "nsf/Types.hpp"
 #include <SFML/Network.hpp>
 
 namespace nsf
 {
-
-class Network;
-class Peer;
 
 class NetworkMessage final
 {
@@ -30,30 +26,34 @@ public:
         : m_type(_type), m_peerId(_peerId), m_isReliable(_isReliable)
     {}
 
-    PeerID GetPeerId() const { return m_peerId; }
-    bool IsBroadcast() const { return m_type == Type::BRODCAST; }
-    bool IsExcludeBroadcast() const { return m_type == Type::EXCLUDE_BRODCAST; }
-    bool IsUnicast() const { return m_type == Type::UNICAST; }
-    bool IsReliable() const { return m_isReliable; }
-// TODO    bool IsValid() const
-    const sf::Packet& GetData() const { return m_data; }
-    bool IsEnd() const { return m_data.endOfPacket(); }
-    size_t GetDataSize() const { return m_data.getDataSize(); }
+    PeerID getPeerId() const { return m_peerId; }
+    bool isBroadcast() const { return m_type == Type::BRODCAST; }
+    bool isExcludeBroadcast() const { return m_type == Type::EXCLUDE_BRODCAST; }
+    bool isUnicast() const { return m_type == Type::UNICAST; }
+    bool isReliable() const { return m_isReliable; }
+// TODO    bool isValid() const
+    const sf::Packet& getData() const { return m_data; }
+    bool isEnd() const { return m_data.endOfPacket(); }
+    size_t getDataSize() const { return m_data.getDataSize(); }
+    sf::Uint8 getMessageType() const { return m_messageType; }
+
+    void setMessageType(sf::Uint8 _type) { m_messageType = _type; }
+    void onReceive(sf::Packet&& _data)
+    {
+        m_data = _data;
+    }
 
     template <typename T>
-    void Write(const T& _value) { m_data << _value; }
+    void write(const T& _value) { m_data << _value; }
     template <typename T>
-    void Read(T& _value) {m_data >> _value; }
+    void read(T& _value) {m_data >> _value; }
 
 private:
-    friend class Network;
-    friend class Peer;
-
     Type m_type = Type::BRODCAST;
     PeerID m_peerId = PeerIdInvalid;
     bool m_isReliable = false;
     sf::Packet m_data;
-    InternalPacketType m_messageType = InternalPacketType::USER_PACKET;// ? messageType
+    sf::Uint8 m_messageType = 0;
 };
 
 } // namespace nsf

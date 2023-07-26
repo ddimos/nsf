@@ -1,7 +1,7 @@
 #pragma once
 #include <SFML/Network.hpp>
 #include "nsf/NetworkAddress.hpp"
-#include "nsf/Transport.hpp"
+#include "Transport.hpp"
 
 namespace nsf
 {
@@ -18,20 +18,20 @@ public:
         DOWN
     };
 
-    void Close(bool _forcibly = false);
+    void close(bool _forcibly = false);
 
-    Status GetStatus() const { return m_status; }
-    void OnConnectionAcceptReceived();
-    void OnHeartbeatReceived();
+    Status getStatus() const { return m_status; }
+    void onConnectionAcceptReceived();
+    void onHeartbeatReceived();
 
 protected:
 
     Connection(Transport& _transport, NetworkAddress _addressToConnect, bool _isCreatingFromRequest);
     virtual ~Connection() = default;
 
-    void Update(float _dt);
+    void update(float _dt);
     
-    void Send(sf::Packet _packet, NetworkAddress _address);
+    void send(sf::Packet _packet, NetworkAddress _address);
 
 protected:
     NetworkAddress m_address = {};

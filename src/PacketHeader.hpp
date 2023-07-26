@@ -1,5 +1,5 @@
 #pragma once
-#include "nsf/InternalPacketType.hpp"
+#include "InternalPacketType.hpp"
 
 namespace nsf
 {
@@ -11,14 +11,14 @@ struct PacketHeader
         : type(_type), isReliable(_isReliable), sequenceNum(_seqNum)
     {}
 
-    void Serialize(sf::Packet& _writeBuffer)
+    void serialize(sf::Packet& _writeBuffer)
     {
         _writeBuffer << static_cast<sf::Uint8>(type);
         _writeBuffer << isReliable;
         _writeBuffer << sequenceNum;
     }
 
-    void Deserialize(sf::Packet& _readBuffer)
+    void deserialize(sf::Packet& _readBuffer)
     {
         sf::Uint8 t;
         _readBuffer >> t;

@@ -1,48 +1,48 @@
 #pragma once
-
+#include "nsf/NSF.hpp"
+#include "Transport.hpp"
 #include "nsf/NetworkAddress.hpp"
 #include "nsf/NetworkMessage.hpp"
 #include "nsf/NetworkEvent.hpp"
 #include "nsf/NetworkPlayer.hpp"
-#include "nsf/NetworkUtils.hpp"
-#include "nsf/Peer.hpp"
-#include "nsf/Transport.hpp"
+#include "nsf/Types.hpp"
+#include "Peer.hpp"
+#include "Transport.hpp"
 
 #include <queue>
 #include <vector>
 
+
 namespace nsf
 {
 
-class Network : public Transport
+
+class NSFImpl : public INSF, public Transport
 {
 public:
-    static bool StartUp(unsigned short _port);
-    static bool ShutDown();
-    static Network& Get() {return *ms_network; }
+    NSFImpl(const Config& _config);
 
-    bool PollEvents(NetworkEvent& _event);
-    void Update(float _dt);
+    bool pollEvents(NetworkEvent& _event) override;
+    void update(float _dt) override;
 
-    void Send(const NetworkMessage& _message);
+    void send(const NetworkMessage& _message) override;
 
-    void CreateAndJoinSession(const std::string& _playerName);  // Should be just CreateSession when I have a server
-    void JoinSession(NetworkAddress _address, const std::string& _name);
+    void createAndJoinSession(const std::string& _playerName) override;  // Should be just CreateSession when I have a server
+    void joinSession(NetworkAddress _address, const std::string& _name) override;
 
-    void LeaveSession();
+    void leaveSession() override;
 
-    bool IsSessionMaster() const { return m_isSessionMaster; }
-    PeerID GetHostPeerId() const { return m_hostPeerId; }
+    bool isSessionMaster() const override { return m_isSessionMaster; }
+    PeerID getHostPeerId() const override { return m_hostPeerId; }
 
-    const std::vector<Peer>& GetPeers() const { return m_peers; }
+    NetworkAddress getPublicAddress() const override;
+    NetworkAddress getLocalAddress() const override;
+
+    const std::vector<Peer>& getPeers() const { return m_peers; }
 
 private:
-    Network(unsigned short _port);
-    ~Network() = default;
-    Network(const Network&) = delete;
-    Network& operator=(const Network&) = delete;
 
-    void OnReceivePacket(sf::Packet _packet, NetworkAddress _sender) override;
+    void onReceivePacket(sf::Packet _packet, NetworkAddress _sender) override;
     
     Peer* getPeer(NetworkAddress _address);
     Peer* getPeer(PeerID _peerId);
@@ -60,8 +60,6 @@ private:
     
     Peer& createPeerInternal(NetworkAddress _addressToConnect, bool _isCreatingFromRequest);
 
-    static Network* ms_network;
-  
     std::queue<NetworkEvent> m_events;
     std::vector<Peer>   m_peers;
     PeerID m_hostPeerId = PeerIdInvalid;

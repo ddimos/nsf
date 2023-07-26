@@ -1,7 +1,7 @@
-#include "nsf/Connection.hpp"
+#include "Connection.hpp"
 // #include "Utils/Log.h"
-#include "nsf/InternalPacketType.hpp"
-#include "nsf/PacketHeader.hpp"
+#include "InternalPacketType.hpp"
+#include "PacketHeader.hpp"
 
 namespace nsf
 {
@@ -24,12 +24,12 @@ Connection::Connection(Transport& _transport, NetworkAddress _addressToConnect, 
         m_status = Status::UP;
         m_timeout = HEARTBEAT_TIMEOUT_s;
     }
-    header.Serialize(packet);
-    Send(packet, _addressToConnect);
+    header.serialize(packet);
+    send(packet, _addressToConnect);
     //LOG_DEBUG("Send a connect request to " + m_address.toString());
 }
 
-void Connection::Close(bool _forcibly /*= false*/)
+void Connection::close(bool _forcibly /*= false*/)
 {
     m_status = Status::DOWN;  
     if (!_forcibly)
@@ -38,13 +38,13 @@ void Connection::Close(bool _forcibly /*= false*/)
         sf::Packet packet;
         PacketHeader header;
         header.type = InternalPacketType::INTERNAL_DISCONNECT;
-        header.Serialize(packet);
-        Send(packet, m_address);
+        header.serialize(packet);
+        send(packet, m_address);
     } 
     //LOG_DEBUG("Disconnect from " + m_address.toString() + (_forcibly?" f":" g"));
 }
 
-void Connection::Update(float _dt)
+void Connection::update(float _dt)
 {
     m_timeout -= _dt;
     if (m_status == Status::CONNECTING)
@@ -64,8 +64,8 @@ void Connection::Update(float _dt)
                 header.type = InternalPacketType::INTERNAL_CONNECT_REQUEST; 
                 m_timeout = TIME_TO_RETRY_CONNECT_s;
                 //LOG_DEBUG("Send a connect request to " + m_address.toString());  
-                header.Serialize(packet);
-                Send(packet, m_address);
+                header.serialize(packet);
+                send(packet, m_address);
             }
         }
     }
@@ -85,26 +85,26 @@ void Connection::Update(float _dt)
                 PacketHeader header;
                 header.type = InternalPacketType::INTERNAL_HEARTBEAT; 
                 //LOG_DEBUG("Send a heartbeat to " + m_address.toString()); 
-                header.Serialize(packet);
-                Send(packet, m_address);   
+                header.serialize(packet);
+                send(packet, m_address);   
                 m_heartbeat = HEARTBEAT_s;
             }
         }
     }
 }
 
-void Connection::Send(sf::Packet _packet, NetworkAddress _address)
+void Connection::send(sf::Packet _packet, NetworkAddress _address)
 {
-    m_transport->Send(_packet, _address);
+    m_transport->send(_packet, _address);
 }
 
-void Connection::OnConnectionAcceptReceived()
+void Connection::onConnectionAcceptReceived()
 {
     m_status = Status::UP;
     m_timeout = HEARTBEAT_TIMEOUT_s;
 }
 
-void Connection::OnHeartbeatReceived()
+void Connection::onHeartbeatReceived()
 {
     m_timeout = HEARTBEAT_TIMEOUT_s;
 }

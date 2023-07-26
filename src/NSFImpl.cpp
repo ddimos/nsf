@@ -1,43 +1,25 @@
 // #include "Utils/Log.h"
-#include "nsf/Network.hpp"
-#include "nsf/InternalPacketType.hpp"
-#include "nsf/PacketHeader.hpp"
+#include "NSFImpl.hpp"
+
+#include "InternalPacketType.hpp"
+#include "PacketHeader.hpp"
 
 namespace nsf
 {
 
-
-Network* Network::ms_network = nullptr;
-
-bool Network::StartUp(unsigned short _port)
+std::unique_ptr<INSF> createNSF(const Config& _config)
 {
-    if (!ms_network)
-    {
-        ms_network = new Network(_port);
-        return true;
-    }
-    return false;
-}
- 
-bool Network::ShutDown()
-{
-    if (!ms_network)
-    {
-        delete ms_network;
-        ms_network = nullptr;
-        return true;
-    }
-    return false;
+    return std::make_unique<NSFImpl>(_config);
 }
 
-Network::Network(unsigned short _port)
-    : Transport(_port)
+NSFImpl::NSFImpl(const Config& _config)
+    : Transport(_config.port)
 {
     m_peers.reserve(10);
     m_players.reserve(10); // TODO use ptrs
 }
 
-bool Network::PollEvents(NetworkEvent& _event)
+bool NSFImpl::pollEvents(NetworkEvent& _event)
 {
     if (m_events.empty())
         return false; 
@@ -48,19 +30,19 @@ bool Network::PollEvents(NetworkEvent& _event)
     return true;
 }
 
-void Network::Update(float _dt)
+void NSFImpl::update(float _dt)
 {
-    Transport::Update();
+    Transport::update();
     
     for (Peer& peer : m_peers)
     {
-        peer.Update(_dt);
+        peer.update(_dt);
     }
 
     m_peers.erase(std::remove_if(m_peers.begin(), m_peers.end(), 
     [this](const Peer& _peer)
     {
-        if (_peer.IsDown())
+        if (_peer.isDown())
         {
             onDisconnect(_peer);
             return true;
@@ -69,45 +51,45 @@ void Network::Update(float _dt)
     }), m_peers.end());
 
     m_players.erase(std::remove_if(m_players.begin(), m_players.end(),
-        [](const NetworkPlayer& _player) { return _player.m_isLeft; }), m_players.end());
+        [](const NetworkPlayer& _player) { return _player.isLeft(); }), m_players.end());
 }
 
-void Network::Send(const NetworkMessage& _message)
+void NSFImpl::send(const NetworkMessage& _message)
 {
-    if (_message.IsBroadcast())
+    if (_message.isBroadcast())
     {
         for (Peer& peer : m_peers)
         {
-            if (peer.IsUp())
-                peer.Send(_message);
+            if (peer.isUp())
+                peer.send(_message);
             //else
                 //LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
         }
     }
-    else if(_message.IsExcludeBroadcast())
+    else if(_message.isExcludeBroadcast())
     {
         for (Peer& peer : m_peers)
         {
-            if (peer.GetPeerId() == _message.GetPeerId())
+            if (peer.getPeerId() == _message.getPeerId())
                 continue;
             
-            if (peer.IsUp())
-                peer.Send(_message);
+            if (peer.isUp())
+                peer.send(_message);
             //else
                 //LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
         }
     }
     else
     {
-        Peer* peer = getPeer(_message.GetPeerId());
-        if (peer && peer->IsUp())
-            peer->Send(_message);
+        Peer* peer = getPeer(_message.getPeerId());
+        if (peer && peer->isUp())
+            peer->send(_message);
         //else
             //LOG("Don't send the message to the peer " + tstr(_message.GetPeerId()) + " because it isn't up.");
     }
 }
 
-void Network::CreateAndJoinSession(const std::string& _playerName)
+void NSFImpl::createAndJoinSession(const std::string& _playerName)
 {
     m_isSessionMaster = true;
     m_isSessionCreated = true;  // TODO: onSessionCreatedEvent
@@ -116,7 +98,7 @@ void Network::CreateAndJoinSession(const std::string& _playerName)
     m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_JOIN, *m_localPlayer)); // it's a copy
 }
 
-void Network::JoinSession(NetworkAddress _address, const std::string& _playerName)
+void NSFImpl::joinSession(NetworkAddress _address, const std::string& _playerName)
 {
     if (m_isSessionMaster || m_connectingToHost)
         return;
@@ -126,7 +108,7 @@ void Network::JoinSession(NetworkAddress _address, const std::string& _playerNam
     connect(_address);
 }
 
-void Network::LeaveSession()
+void NSFImpl::leaveSession()
 {
     disconnect();
     m_isSessionCreated = false;
@@ -135,12 +117,22 @@ void Network::LeaveSession()
     m_localPlayer = nullptr;
 }
 
-void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
+NetworkAddress NSFImpl::getPublicAddress() const
+{
+    return Transport::getPublicAddress();
+}
+
+NetworkAddress NSFImpl::getLocalAddress() const
+{
+    return Transport::getLocalAddress();
+}
+
+void NSFImpl::onReceivePacket(sf::Packet _packet, NetworkAddress _sender)
 {
     Peer* senderPeer = getPeer(_sender);
  
     PacketHeader header;
-    header.Deserialize(_packet);
+    header.deserialize(_packet);
 
     switch (header.type)
     {
@@ -170,13 +162,13 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
             //LOG_ERROR("CONNECT_ACCEPT received from " + _sender.toString() + " who we didn't ask");
             break;
         }
-        else if (senderPeer->GetStatus() != Peer::Status::CONNECTING)
+        else if (senderPeer->getStatus() != Peer::Status::CONNECTING)
         {
             //LOG_ERROR("The status of " + _sender.toString() + " isn't CONNECTING");
             break;
         }
         //LOG("CONNECT_ACCEPT received from " + _sender.toString());
-        senderPeer->OnConnectionAcceptReceived();
+        senderPeer->onConnectionAcceptReceived();
         onConnect(*senderPeer);
         break;
     }
@@ -187,13 +179,13 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
             //LOG_ERROR("DISCONNECT received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
-        else if (senderPeer->GetStatus() == Peer::Status::DOWN)
+        else if (senderPeer->getStatus() == Peer::Status::DOWN)
         {
             //LOG_ERROR("The status of " + _sender.toString() + " is already DOWN");
             break;
         }
         //LOG("DISCONNECT received from " + _sender.toString());
-        senderPeer->Close(true);
+        senderPeer->close(true);
         break;
     }
     case InternalPacketType::INTERNAL_HEARTBEAT:
@@ -203,18 +195,18 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
             //LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
-        else if (senderPeer->GetStatus() == Peer::Status::CONNECTING)
+        else if (senderPeer->getStatus() == Peer::Status::CONNECTING)
         {
-            senderPeer->OnConnectionAcceptReceived();
+            senderPeer->onConnectionAcceptReceived();
             onConnect(*senderPeer);
             //LOG("Received a heartbeat from " + _sender.toString() + " while waiting for connection accept");
         }
-        else if (!senderPeer->IsUp())
+        else if (!senderPeer->isUp())
         {
             //LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
             break;
         }
-        senderPeer->OnHeartbeatReceived();
+        senderPeer->onHeartbeatReceived();
         //LOG_DEBUG("Received a heartbeat from " + _sender.toString());
         break;
     }
@@ -225,14 +217,14 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
             //LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
-        else if (!senderPeer->IsUp())
+        else if (!senderPeer->isUp())
         {
             //LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
             break;
         }
         //LOG_DEBUG("AR received from " + _sender.toString() + " seqNum: " + tstr(header.sequenceNum));
 
-        senderPeer->OnAcknowledgmentReceived(header.sequenceNum);
+        senderPeer->onAcknowledgmentReceived(header.sequenceNum);
 
         break;
     }
@@ -248,33 +240,32 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
             //LOG_ERROR("Received from " + _sender.toString() + " who is not in the list of peers");
             break;
         }
-        else if (!senderPeer->IsUp())
+        else if (!senderPeer->isUp())
         {
             //LOG_ERROR("Received from " + _sender.toString() + " who is not UP");
             break;
         }
         //LOG_DEBUG("Received from " + _sender.toString());
 
-        NetworkMessage message;
-        message.m_data = std::move(_packet);
-        message.m_peerId = senderPeer->GetPeerId();
-        message.m_isReliable = header.isReliable;
-        message.m_messageType = header.type;
+        NetworkMessage message(senderPeer->getPeerId(), header.isReliable);
+        message.setMessageType(static_cast<sf::Uint8>(header.type));
+        message.onReceive(std::move(_packet));
 
         if (header.isReliable)
         {
-            senderPeer->OnReliableReceived(header.sequenceNum, message);
-            auto& messages = senderPeer->GetMessagesToDeliver();
+            senderPeer->onReliableReceived(header.sequenceNum, message);
+            auto& messages = senderPeer->getMessagesToDeliver();
             while(!messages.empty())
             {
                 auto& mes = messages.front();   // It's a real mess to have different types here
-                if (mes.m_messageType == InternalPacketType::INTERNAL_SESSION_JOIN_REQUEST)
+                InternalPacketType messageType = static_cast<InternalPacketType>(mes.getMessageType());
+                if (messageType == InternalPacketType::INTERNAL_SESSION_JOIN_REQUEST)
                     processSessionJoinRequest(mes, senderPeer);
-                else if (mes.m_messageType == InternalPacketType::INTERNAL_SESSION_JOIN_ACCEPT)
+                else if (messageType == InternalPacketType::INTERNAL_SESSION_JOIN_ACCEPT)
                     processSessionJoinAccept(mes);
-                else if (mes.m_messageType == InternalPacketType::INTERNAL_SESSION_ON_JOIN)
+                else if (messageType == InternalPacketType::INTERNAL_SESSION_ON_JOIN)
                     processSessionOnJoin(mes);
-                else if (mes.m_messageType == InternalPacketType::INTERNAL_SESSION_ON_LEAVE)
+                else if (messageType == InternalPacketType::INTERNAL_SESSION_ON_LEAVE)
                     processSessionOnLeave(mes);
                 else
                     m_events.push(NetworkEvent(NetworkEvent::Type::ON_RECEIVE, std::move(mes), _sender));
@@ -294,7 +285,7 @@ void Network::OnReceivePacket(sf::Packet _packet, NetworkAddress _sender)
     }
 }
 
-void Network::connect(NetworkAddress _addressToConnect)
+void NSFImpl::connect(NetworkAddress _addressToConnect)
 {
     if (getPeer(_addressToConnect) != nullptr)
     {
@@ -305,67 +296,67 @@ void Network::connect(NetworkAddress _addressToConnect)
     createPeerInternal(_addressToConnect, false);
 }
 
-void Network::disconnect()
+void NSFImpl::disconnect()
 {
     for (Peer& peer : m_peers)
-        peer.Close();
+        peer.close();
     
     //LOG("Disconnect");
 
     if (m_isSessionMaster && m_peers.empty())
     {
-        m_localPlayer->m_isLeft = true;
+        m_localPlayer->onLeft();
         m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_LEAVE, *m_localPlayer));
     }
 }
 
-Peer* Network::getPeer(NetworkAddress _address)
+Peer* NSFImpl::getPeer(NetworkAddress _address)
 {
     for (Peer& peer : m_peers)
-        if (peer.GetAddress() == _address)
+        if (peer.getAddress() == _address)
             return &peer;
         
     return nullptr;
 }
 
-Peer* Network::getPeer(PeerID _peerId)
+Peer* NSFImpl::getPeer(PeerID _peerId)
 {
     for (Peer& peer : m_peers)
-        if (peer.GetPeerId() == _peerId)
+        if (peer.getPeerId() == _peerId)
             return &peer;
         
     return nullptr;
 }
 
-void Network::onConnect(Peer& _peer)
+void NSFImpl::onConnect(Peer& _peer)
 {
     if (m_isSessionMaster)
         return;
     
-    m_hostPeerId = _peer.GetPeerId();
+    m_hostPeerId = _peer.getPeerId();
 
     NetworkMessage message(m_hostPeerId, true);
-    message.m_messageType = InternalPacketType::INTERNAL_SESSION_JOIN_REQUEST;
-    message.Write(m_localPlayer->m_name);
+    message.setMessageType(static_cast<sf::Uint8>(InternalPacketType::INTERNAL_SESSION_JOIN_REQUEST));
+    message.write(m_localPlayer->getName());
     //LOG_DEBUG("Send a join session request to " + tstr(_peer.GetPeerId()));  
-    Send(message);
+    send(message);
 }
 
-void Network::onDisconnect(const Peer& _peer)
+void NSFImpl::onDisconnect(const Peer& _peer)
 {
     if (m_isSessionMaster)
     {
         for (NetworkPlayer& player : m_players)
         {
-            if (!player.IsLocal() && player.m_peerId == _peer.GetPeerId())
+            if (!player.isLocal() && player.getPeerId() == _peer.getPeerId())
             {
                 NetworkMessage message(true);
-                message.m_messageType = InternalPacketType::INTERNAL_SESSION_ON_LEAVE;
-                message.Write(player.m_id);
+                message.setMessageType(static_cast<sf::Uint8>(InternalPacketType::INTERNAL_SESSION_ON_LEAVE));
+                message.write(player.getPlayerId());
                 //LOG_DEBUG("Send a session leave message");  
-                Send(message);
+                send(message);
                 m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_LEAVE, player));
-                player.m_isLeft = true;
+                player.onLeft();
                 break;
             }
         }
@@ -375,26 +366,26 @@ void Network::onDisconnect(const Peer& _peer)
         // All players leave
         for (NetworkPlayer& player : m_players) 
         {
-            player.m_isLeft = true;
+            player.onLeft();
             m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_LEAVE, player));
         }
     }
 }
 
-Peer& Network::createPeerInternal(NetworkAddress _addressToConnect, bool _isCreatingFromRequest)
+Peer& NSFImpl::createPeerInternal(NetworkAddress _addressToConnect, bool _isCreatingFromRequest)
 {
     PeerID peerId = ++m_peerIdGenerator;
     //LOG("Create a new peer. id: " + tstr(peerId) + " address: " + _addressToConnect.toString());
     return m_peers.emplace_back(Peer(*this, _addressToConnect, peerId, _isCreatingFromRequest));
 }
 
-NetworkPlayer* Network::createPlayerIntrernal(const std::string& _name, PlayerID _id, bool _isLocal)
+NetworkPlayer* NSFImpl::createPlayerIntrernal(const std::string& _name, PlayerID _id, bool _isLocal)
 {
     auto& player = m_players.emplace_back(NetworkPlayer(_name, _id, _isLocal));
     return &player;
 }
 
-void Network::processSessionJoinRequest(NetworkMessage& _message, Peer* _peer)
+void NSFImpl::processSessionJoinRequest(NetworkMessage& _message, Peer* _peer)
 {
     if (!m_isSessionMaster)
     {
@@ -404,36 +395,36 @@ void Network::processSessionJoinRequest(NetworkMessage& _message, Peer* _peer)
     //LOG_DEBUG("JoinRequest received from " + tstr(_message.GetPeerId()));
 
     std::string newPlayerName;
-    _message.Read(newPlayerName);
+    _message.read(newPlayerName);
     PlayerID newPlayerId = ++m_playerIdGenerator;
 
-    NetworkMessage message(NetworkMessage::Type::UNICAST, _peer->GetPeerId(), true);
-    message.m_messageType = InternalPacketType::INTERNAL_SESSION_JOIN_ACCEPT;
-    message.Write(newPlayerName);
-    message.Write(newPlayerId);
+    NetworkMessage message(NetworkMessage::Type::UNICAST, _peer->getPeerId(), true);
+    message.setMessageType(static_cast<sf::Uint8>(InternalPacketType::INTERNAL_SESSION_JOIN_ACCEPT));
+    message.write(newPlayerName);
+    message.write(newPlayerId);
     for (const auto& player : m_players)
     {
-        message.Write(player.m_name);
-        message.Write(player.m_id);
+        message.write(player.getName());
+        message.write(player.getPlayerId());
     }
     
     //LOG_DEBUG("Send a join session accept to " + tstr(_peer->GetPeerId()));  
-    Send(message);   
+    send(message);   
 
-    NetworkMessage messageOnJoin(NetworkMessage::Type::EXCLUDE_BRODCAST, _peer->GetPeerId(), true);
-    messageOnJoin.m_messageType = InternalPacketType::INTERNAL_SESSION_ON_JOIN;
-    messageOnJoin.Write(newPlayerName);
-    messageOnJoin.Write(newPlayerId);
+    NetworkMessage messageOnJoin(NetworkMessage::Type::EXCLUDE_BRODCAST, _peer->getPeerId(), true);
+    messageOnJoin.setMessageType(static_cast<sf::Uint8>(InternalPacketType::INTERNAL_SESSION_ON_JOIN));
+    messageOnJoin.write(newPlayerName);
+    messageOnJoin.write(newPlayerId);
      
     //LOG_DEBUG("Send a session join message");  
-    Send(messageOnJoin);   
+    send(messageOnJoin);   
 
     auto* player = createPlayerIntrernal(newPlayerName, newPlayerId, false);
-    player->m_peerId = _peer->GetPeerId(); // I guess I need this only on the host side
+    player->setPeerId(_peer->getPeerId()); // I guess I need this only on the host side
     m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_JOIN, *player));
 }
 
-void Network::processSessionJoinAccept(NetworkMessage& _message)
+void NSFImpl::processSessionJoinAccept(NetworkMessage& _message)
 {
     if (m_isSessionMaster)
     {
@@ -445,26 +436,26 @@ void Network::processSessionJoinAccept(NetworkMessage& _message)
 
     std::string playerName;
     PlayerID playerId;
-    _message.Read(playerName);
-    _message.Read(playerId);
+    _message.read(playerName);
+    _message.read(playerId);
 
-    if (m_localPlayer->m_name != playerName)
+    if (m_localPlayer->getName() != playerName)
     {
         //LOG_ERROR("The local player name is not equal to the one received from the host: " + m_localPlayer->m_name + " != " + playerName);
         return;
     }
-    m_localPlayer->m_id = playerId;
+    m_localPlayer->setPlayerId(playerId);
     m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_JOIN, *m_localPlayer));
-    while (!_message.IsEnd())
+    while (!_message.isEnd())
     {
-        _message.Read(playerName);
-        _message.Read(playerId);
+        _message.read(playerName);
+        _message.read(playerId);
         auto player = createPlayerIntrernal(playerName, playerId, false);
         m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_JOIN, *player));
     }
 }
 
-void Network::processSessionOnJoin(NetworkMessage& _message)
+void NSFImpl::processSessionOnJoin(NetworkMessage& _message)
 {
     if (m_isSessionMaster)
     {
@@ -476,14 +467,14 @@ void Network::processSessionOnJoin(NetworkMessage& _message)
 
     std::string playerName;
     PlayerID playerId;
-    _message.Read(playerName);
-    _message.Read(playerId);
+    _message.read(playerName);
+    _message.read(playerId);
 
     auto player = createPlayerIntrernal(playerName, playerId, false);
     m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_JOIN, *player));
 }
 
-void Network::processSessionOnLeave(NetworkMessage& _message)
+void NSFImpl::processSessionOnLeave(NetworkMessage& _message)
 {
     if (m_isSessionMaster)
     {
@@ -494,14 +485,14 @@ void Network::processSessionOnLeave(NetworkMessage& _message)
     //LOG_DEBUG("OnLeave received");
 
     PlayerID playerId;
-    _message.Read(playerId);
+    _message.read(playerId);
 
     for (NetworkPlayer& player : m_players)
     {
-        if (player.m_id == playerId)
+        if (player.getPlayerId() == playerId)
         {
             m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_PLAYER_LEAVE, player));
-            player.m_isLeft = true;
+            player.onLeft();
             break;
         }
     }

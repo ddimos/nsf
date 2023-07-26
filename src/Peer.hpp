@@ -1,9 +1,9 @@
 #pragma once
 #include "nsf/NetworkAddress.hpp"
 #include "nsf/NetworkMessage.hpp"
-#include "nsf/NetworkUtils.hpp"
-#include "nsf/Transport.hpp"
-#include "nsf/Connection.hpp"
+#include "nsf/Types.hpp"
+#include "Transport.hpp"
+#include "Connection.hpp"
 #include <queue>
 #include <deque>
 #include <map>
@@ -18,18 +18,18 @@ public:
 
     Peer(Transport& _transport, NetworkAddress _addressToConnect, PeerID _peerId, bool _isCreatingFromRequest);
 
-    void Update(float _dt);
-    void Send(const NetworkMessage& _message);
+    void update(float _dt);
+    void send(const NetworkMessage& _message);
     
-    PeerID GetPeerId() const { return m_peerId; }
-    NetworkAddress GetAddress() const { return m_address; }
+    PeerID getPeerId() const { return m_peerId; }
+    NetworkAddress getAddress() const { return m_address; }
     
-    bool IsUp() const { return GetStatus() == Connection::Status::UP; }
-    bool IsDown() const { return GetStatus() == Connection::Status::DOWN; }
+    bool isUp() const { return getStatus() == Connection::Status::UP; }
+    bool isDown() const { return getStatus() == Connection::Status::DOWN; }
 
-    void OnReliableReceived(sf::Uint32 _seqNum, const NetworkMessage& _message);
-    void OnAcknowledgmentReceived(sf::Uint32 _seqNum);
-    std::queue<NetworkMessage>& GetMessagesToDeliver() { return m_messagesToDeliver; };
+    void onReliableReceived(sf::Uint32 _seqNum, const NetworkMessage& _message);
+    void onAcknowledgmentReceived(sf::Uint32 _seqNum);
+    std::queue<NetworkMessage>& getMessagesToDeliver() { return m_messagesToDeliver; };
 
 private:
     static constexpr float TIME_TO_RESEND_s = 1.0f;

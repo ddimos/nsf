@@ -1,12 +1,9 @@
 #pragma once 
 #include <string>
-#include "nsf/NetworkUtils.hpp"
+#include "nsf/Types.hpp"
 
 namespace nsf
 {
-
-class Network;
-class Peer;
 
 class NetworkPlayer
 {
@@ -19,14 +16,18 @@ public:
             m_name = "Player";
     }
 
-    const std::string& GetName() const { return m_name; }
-    PlayerID GetPlayerId() const { return m_id; }
-    PeerID GetPeerId() const { return m_peerId; } // TODO it's available only on a host side
-    bool IsLocal() const { return m_isLocalPlayer; }
+    const std::string& getName() const { return m_name; }
+    PlayerID getPlayerId() const { return m_id; }
+    PeerID getPeerId() const { return m_peerId; } // TODO it's available only on a host side
+    bool isLocal() const { return m_isLocalPlayer; }
+
+    bool isLeft() const { return m_isLeft; }
+    void onLeft() { m_isLeft = true; }
+
+    void setPlayerId(PlayerID _playerId) { m_id = _playerId; }
+    void setPeerId(PeerID _peerId) { m_peerId = _peerId; }
 
 private:
-    friend class Network;
-    
     std::string m_name = "Player";
     PlayerID m_id = PlayerIdInvalid;
     bool m_isLocalPlayer = false;

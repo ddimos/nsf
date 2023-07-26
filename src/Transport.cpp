@@ -1,4 +1,4 @@
-#include "nsf/Transport.hpp"
+#include "Transport.hpp"
 // #include "Utils/Log.h"
 #include <algorithm>
 
@@ -10,7 +10,7 @@ Transport::Transport(unsigned short _port)
     createHost(_port);
 }
 
-void Transport::Update()
+void Transport::update()
 {
     while (true)
     {
@@ -24,7 +24,7 @@ void Transport::Update()
         }
         else if(status == sf::Socket::Status::Done)
         {
-            OnReceivePacket(packet, sender);
+            onReceivePacket(packet, sender);
         }
         else
         {
@@ -35,7 +35,7 @@ void Transport::Update()
 
 }
 
-void Transport::Send(sf::Packet _packet, NetworkAddress _address)
+void Transport::send(sf::Packet _packet, NetworkAddress _address)
 {
     m_localSocket.send(_packet, _address.address, _address.port);
 }

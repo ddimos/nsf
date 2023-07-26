@@ -1,21 +1,25 @@
 #include <iostream>
 
-#include <nsf/Network.hpp>
+#include <nsf/NSF.hpp>
 
-int main()
+int main(int argc, char **argv)
 {
-    unsigned port = 20475;
-    bool result = nsf::Network::StartUp(port);
-
-    if (!result)
+    bool isHost = true;
+    if (argc < 2)
     {
-        std::cout << "Unable to create Network!" << std::endl;
-        return 0;
+        std::cout << "No arguments passed, assume to be a host" << std::endl;
     }
-    
-    std::cout << "Network is created!" << std::endl;
-    std::cout << "The public address : " << nsf::Network::Get().GetPublicAddress().toString() << std::endl;
-    std::cout << "The local address : " << nsf::Network::Get().GetLocalAddress().toString() << std::endl;
+    else
+    {
+        std::cout << "Create a client" << std::endl;
+        isHost = false;
+    }
 
-    nsf::Network::ShutDown();
+    nsf::Config config;
+    config.port = (isHost) ? 20475 : 20480;//20087
+    auto network = nsf::createNSF(config);
+    std::cout << "Network is created!" << std::endl;
+    std::cout << "The public address : " << network->getPublicAddress().toString() << std::endl;
+    std::cout << "The local address : "  << network->getLocalAddress().toString() << std::endl;
+
 }

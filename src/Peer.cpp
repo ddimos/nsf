@@ -1,6 +1,6 @@
 // #include "Utils/Log.h"
-#include "nsf/Peer.hpp"
-#include "nsf/PacketHeader.hpp"
+#include "Peer.hpp"
+#include "PacketHeader.hpp"
 #include <algorithm>
 
 namespace nsf
@@ -12,9 +12,9 @@ Peer::Peer(Transport& _transport, NetworkAddress _addressToConnect, PeerID _peer
 {
 }
 
-void Peer::Update(float _dt)
+void Peer::update(float _dt)
 {
-    Connection::Update(_dt);
+    Connection::update(_dt);
 
     m_reliableSent.erase(
         std::remove_if(m_reliableSent.begin(), m_reliableSent.end(),
@@ -30,24 +30,24 @@ void Peer::Update(float _dt)
         _info.timeout -= _dt;
         if (_info.timeout <= 0.f)
         {
-            Connection::Send(_info.packet, m_address);
+            Connection::send(_info.packet, m_address);
             //LOG_DEBUG("onReliableSent again. Sequence number: " + tstr(_info.seqNum));
             _info.timeout = TIME_TO_RESEND_s;
         }   
     }
 }
 
-void Peer::Send(const NetworkMessage& _message)
+void Peer::send(const NetworkMessage& _message)
 {
     sf::Packet packet;
-    sf::Uint32 seqNum = _message.IsReliable() ? ++m_sequenceNumGenerator : 0;
-    PacketHeader header(_message.m_messageType, _message.IsReliable(), seqNum);
-    header.Serialize(packet);
-    packet.append(_message.GetData().getData(),_message.GetData().getDataSize());
+    sf::Uint32 seqNum = _message.isReliable() ? ++m_sequenceNumGenerator : 0;
+    PacketHeader header(static_cast<InternalPacketType>(_message.getMessageType()), _message.isReliable(), seqNum);
+    header.serialize(packet);
+    packet.append(_message.getData().getData(),_message.getData().getDataSize());
 
-    Connection::Send(packet, m_address);
+    Connection::send(packet, m_address);
 
-    if (_message.IsReliable())
+    if (_message.isReliable())
         onReliableSent(packet, seqNum);
 }
 
@@ -66,11 +66,11 @@ void Peer::sendAR(sf::Uint32 _seqNum)
     //LOG_DEBUG("Send AR. Sequence number: " + tstr(_seqNum));
     sf::Packet packet;
     PacketHeader header(InternalPacketType::INTERNAL_AR, false, _seqNum);
-    header.Serialize(packet);
-    Connection::Send(packet, m_address);
+    header.serialize(packet);
+    Connection::send(packet, m_address);
 }
 
-void Peer::OnReliableReceived(sf::Uint32 _seqNum, const NetworkMessage& _message)
+void Peer::onReliableReceived(sf::Uint32 _seqNum, const NetworkMessage& _message)
 {
     sendAR(_seqNum);
         // TODO:
@@ -114,7 +114,7 @@ void Peer::OnReliableReceived(sf::Uint32 _seqNum, const NetworkMessage& _message
     }
 }
 
-void Peer::OnAcknowledgmentReceived(sf::Uint32 _seqNum)
+void Peer::onAcknowledgmentReceived(sf::Uint32 _seqNum)
 {
     auto it = std::find_if(m_reliableSent.begin(), m_reliableSent.end(),
         [_seqNum](const auto& _info)

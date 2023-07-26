@@ -9,18 +9,18 @@ namespace nsf
 class Transport
 {
 public:
-    void Send(sf::Packet _packet, NetworkAddress _address);
-    NetworkAddress GetLocalAddress() const { return m_localAddress; }
-    NetworkAddress GetPublicAddress() const { return m_publicAddress; }
+    void send(sf::Packet _packet, NetworkAddress _address);
+    NetworkAddress getLocalAddress() const { return m_localAddress; }
+    NetworkAddress getPublicAddress() const { return m_publicAddress; }
 
 protected:
 
     Transport(unsigned short _port);
     virtual ~Transport() = default;
 
-    void Update();
+    void update();
 
-    virtual void OnReceivePacket(sf::Packet _packet, NetworkAddress _sender) = 0;
+    virtual void onReceivePacket(sf::Packet _packet, NetworkAddress _sender) = 0;
 
 private:
     void createHost(unsigned short _port);
