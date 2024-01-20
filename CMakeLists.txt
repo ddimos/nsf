@@ -6,6 +6,11 @@ project("nsf"
     )
 
 find_package(SFML 2.5 COMPONENTS network REQUIRED)
+# include(FetchContent)
+# FetchContent_Declare(SFML
+#     GIT_REPOSITORY https://github.com/SFML/SFML.git
+#     GIT_TAG 2.6.x)
+# FetchContent_MakeAvailable(SFML)
 
 option(NSF_BUILD_EXAMPLE "Build the nsf example" ON)
 
@@ -20,10 +25,15 @@ add_library(${PROJECT_NAME} STATIC)
 
 target_sources(${PROJECT_NAME}
     PRIVATE
-        src/Connection.cpp
+        src/channel/ChannelManager.cpp
+        src/channel/MessageHeader.cpp
+        src/channel/Peer.cpp
+        src/connection/Connection.cpp
+        src/connection/ConnectionManager.cpp
+        src/connection/PacketHeader.cpp
+        src/connection/UdpSocket.cpp
+        src/packetManager/PacketManager.cpp
         src/NSFImpl.cpp
-        src/Peer.cpp
-        src/Transport.cpp
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC sfml-network)
@@ -46,7 +56,7 @@ set(public_headers
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Werror)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Werror -Wall -Wextra -pedantic-errors)
 endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")

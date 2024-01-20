@@ -29,10 +29,10 @@ public:
 
 private:
     std::string m_name = "Player";
-    PlayerID m_id = PlayerIdInvalid;
+    PlayerID m_id = PLAYER_ID_INVALID;
     bool m_isLocalPlayer = false;
 
-    PeerID  m_peerId = PeerIdInvalid;
+    PeerID  m_peerId = PEER_ID_INVALID;
 
     bool m_isLeft = false;
 };
