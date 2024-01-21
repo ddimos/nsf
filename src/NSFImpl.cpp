@@ -9,18 +9,19 @@
 namespace nsf
 {
 
-std::unique_ptr<INSF> createNSF(const Config& _config)
+std::unique_ptr<INSF> createNSF(const Config& _config, NSFCallbacks _callbacks)
 {
-    return std::make_unique<NSFImpl>(_config);
+    return std::make_unique<NSFImpl>(_config, _callbacks);
 }
 
 // ---------------------------------------------------------------
 
-NSFImpl::NSFImpl(const Config& _config)
+NSFImpl::NSFImpl(const Config& _config, NSFCallbacks _callbacks)
     : m_connectionManager(_config)
     , m_packetManager{m_systemClock}
     , m_channelManager{_config, m_systemClock}
     , m_config{_config}
+    , m_callbacks{_callbacks}
 {
     m_systemClock.restart();
 
@@ -29,12 +30,13 @@ NSFImpl::NSFImpl(const Config& _config)
         [this](Connection& _connection) {
             m_packetManager.onConnected(_connection);
             m_channelManager.onConnected(_connection);
-            m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_CONNECT_RESULT, _connection.getConnectionId()));
+
+            m_callbacks.onConnected(_connection.getConnectionId());
         };
     cmCallbacks.onDisconnected = 
         [this](Connection& _connection) {
             NSF_LOG("TODO disconnect");
-            m_events.emplace(NetworkEvent(NetworkEvent::Type::ON_DISCONNECT, _connection.getConnectionId()));
+            m_callbacks.onDisconnected(_connection.getConnectionId());
         };
     cmCallbacks.onReceive = 
         [this](ConnectionID _connectionId, PacketHeader _header, Buffer& _buffer) {
@@ -71,36 +73,21 @@ NSFImpl::NSFImpl(const Config& _config)
 
     chanManCallbacks.onReceive =
         [this](NetworkMessage&& _message) {
-            auto peerId = _message.getPeerId();
-            m_events.push(
-                NetworkEvent(
-                    NetworkEvent::Type::ON_RECEIVE,
-                    std::move(_message),
-                    peerId));
-            // TODO remove network events
+            m_callbacks.onReceived(std::move(_message));
         };
     m_channelManager.init(chanManCallbacks);
 }
 
-bool NSFImpl::pollEvents(NetworkEvent& _event)
-{
-    if (m_events.empty())
-        return false; 
-    
-    _event = m_events.front();
-    m_events.pop();
-
-    return true;
-}
-
-void NSFImpl::update()
+void NSFImpl::updateReceive()
 {
     sf::Time elapsed = m_deltaClock.restart();
     m_connectionManager.receive(elapsed);
 
     m_channelManager.deliverMessages();
-    // deliver events
+}
 
+void NSFImpl::updateSend()
+{
     m_packetManager.sendAll();
 }
 

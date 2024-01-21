@@ -60,7 +60,20 @@ int main(int argc, char **argv)
     nsf::Config config;
     config.port = (isHost) ? SERVER_PORT : CLIENT_PORT;
     config.isServer = isHost;
-    auto network = nsf::createNSF(config);
+    nsf::NSFCallbacks callbacks;
+    callbacks.onConnected = [](nsf::PeerID _peerId){
+        std::cout << "--->>>CONNECTED<<<--- " << _peerId << std::endl;
+    };
+    callbacks.onDisconnected = [](nsf::PeerID _peerId){
+        std::cout << "--->>>DISCONNECTED<<<--- " << _peerId << std::endl;
+    };
+    callbacks.onReceived = [](nsf::NetworkMessage&& _message){
+        TestMessage testMessage;
+        testMessage.deserialize(_message.m_data);
+        std::cout << ">Received from " << _message.getPeerId() << " data: " << testMessage.field1 << std::endl;
+    };
+
+    auto network = nsf::createNSF(config, callbacks);
     std::cout << "Network is created!" << std::endl;
     std::cout << "The public address : " << network->getPublicAddress().toString() << std::endl;
     std::cout << "The local address : "  << network->getLocalAddress().toString() << std::endl;
@@ -88,34 +101,15 @@ int main(int argc, char **argv)
         sf::Time elapsed = clock.restart();
         accumulator += elapsed.asSeconds();
 
-        nsf::NetworkEvent event;
-        while (network->pollEvents(event))
-        {
-            switch (event.type)
-            {
-            case nsf::NetworkEvent::Type::ON_CONNECT_RESULT:
-                std::cout << "--->>>CONNECTED<<<--- " << event.peerId << std::endl;
-                break;
-            case nsf::NetworkEvent::Type::ON_RECEIVE:
-                {
-                    TestMessage testMessage;
-                    testMessage.deserialize(event.message.m_data);
-
-                    std::cout << ">Received from " << event.peerId << " data: " << testMessage.field1 << std::endl;
-                }
-                break;
-            
-            default:
-                break;
-            }
-        }
-
 //		m_game.update();
         while (accumulator >= DT)
         {
-            network->update();
+            network->updateReceive();
+
 //		    m_game.fixedUpdate(DT);
             accumulator -= DT;
+
+            network->updateSend();
         }
         
         timeUntilNextMessageS -= elapsed.asSeconds();

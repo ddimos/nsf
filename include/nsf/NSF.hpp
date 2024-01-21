@@ -3,23 +3,29 @@
 
 #include "nsf/NetworkAddress.hpp"
 #include "nsf/NetworkMessage.hpp"
-#include "nsf/NetworkEvent.hpp"
 #include "nsf/Types.hpp"
 
+#include <functional>
 #include <memory>
 
 
 namespace nsf
 {
 
+struct NSFCallbacks
+{
+    std::function<void(PeerID _peerId)> onConnected{};
+    std::function<void(PeerID _peerId)> onDisconnected{};
+    std::function<void(NetworkMessage&& _message)> onReceived{};
+};
 
 class INSF
 {
 public:
     virtual ~INSF() = default;
 
-    virtual bool pollEvents(NetworkEvent& _event) = 0;
-    virtual void update() = 0;
+    virtual void updateReceive() = 0;
+    virtual void updateSend() = 0;
 
     virtual void send(NetworkMessage&& _message) = 0;
 
@@ -41,6 +47,6 @@ public:
 
 };
 
-std::unique_ptr<INSF> createNSF(const Config& _config);
+std::unique_ptr<INSF> createNSF(const Config& _config, NSFCallbacks _callbacks);
 
 } // namespace nsf

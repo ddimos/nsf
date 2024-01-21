@@ -48,7 +48,6 @@ target_include_directories(${PROJECT_NAME}
 
 set(public_headers
     include/nsf/NetworkAddress.hpp
-    include/nsf/NetworkEvent.hpp
     include/nsf/NetworkMessage.hpp
     include/nsf/NetworkPlayer.hpp
     include/nsf/NSF.hpp

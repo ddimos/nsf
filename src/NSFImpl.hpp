@@ -1,6 +1,5 @@
 #pragma once
 #include "nsf/NetworkAddress.hpp"
-#include "nsf/NetworkEvent.hpp"
 #include "nsf/NetworkMessage.hpp"
 #include "nsf/NSF.hpp"
 #include "nsf/Types.hpp"
@@ -17,10 +16,10 @@ namespace nsf
 class NSFImpl : public INSF
 {
 public:
-    NSFImpl(const Config& _config);
+    NSFImpl(const Config& _config, NSFCallbacks _callbacks);
 
-    bool pollEvents(NetworkEvent& _event) override;
-    void update() override; // TODO sendUpdate and receiveUpdate
+    void updateReceive() override;
+    void updateSend() override;
 
     void send(NetworkMessage&& _message) override;
 
@@ -34,7 +33,6 @@ public:
     NetworkAddress getLocalAddress() const override;
 
 private:
-
     sf::Clock m_systemClock;
     sf::Clock m_deltaClock;
 
@@ -42,10 +40,8 @@ private:
     PacketManager m_packetManager;
     ChannelManager m_channelManager;
 
-    Config m_config = {};
-
-    // TODO to remove events
-    std::queue<NetworkEvent> m_events;
+    Config m_config{};
+    NSFCallbacks m_callbacks{};
 };
 
 } // namespace nsf
