@@ -17,93 +17,87 @@ std::unique_ptr<INSF> createNSF(const Config& _config, NSFCallbacks _callbacks)
 // ---------------------------------------------------------------
 
 NSFImpl::NSFImpl(const Config& _config, NSFCallbacks _callbacks)
-    : m_connectionManager(_config)
-    , m_packetManager{m_systemClock}
-    , m_channelManager{_config, m_systemClock}
-    , m_config{_config}
+    : m_config{_config}
     , m_callbacks{_callbacks}
 {
-    m_systemClock.restart();
-
-    ConnectionManagerCallbacks cmCallbacks;
-    cmCallbacks.onConnected = 
+    ConnectionManagerCallbacks connectionManCallbacks;
+    connectionManCallbacks.onConnected = 
         [this](Connection& _connection) {
-            m_packetManager.onConnected(_connection);
-            m_channelManager.onConnected(_connection);
+            m_packetManager->onConnected(_connection);
+            m_channelManager->onConnected(_connection);
 
             m_callbacks.onConnected(_connection.getConnectionId());
         };
-    cmCallbacks.onDisconnected = 
+    connectionManCallbacks.onDisconnected = 
         [this](Connection& _connection) {
             NSF_LOG("TODO disconnect");
             m_callbacks.onDisconnected(_connection.getConnectionId());
         };
-    cmCallbacks.onReceive = 
-        [this](ConnectionID _connectionId, PacketHeader _header, Buffer& _buffer) {
-            m_packetManager.receive(_connectionId, _header, _buffer);
+    connectionManCallbacks.onReceivePacket = 
+        [this](ConnectionID _connectionId, PacketHeader _header) {
+            m_packetManager->onReceivePacket(_connectionId, _header);
         };
-    m_connectionManager.init(cmCallbacks);
-
-    PacketManagerCallbacks pmCallbacks;
-    pmCallbacks.onSend = 
-        [this](ConnectionID _connectionId, Buffer& _data) {
-            m_connectionManager.send(_connectionId, _data);
-        };
-
-    pmCallbacks.haveDataToSend =
+    connectionManCallbacks.onSendPacket = 
         [this](ConnectionID _connectionId) {
-            return m_channelManager.hasDataToWrite(_connectionId);
+            return m_packetManager->onSendPacket(_connectionId);
         };
-    pmCallbacks.onWritePacket =
+    connectionManCallbacks.haveDataToSend = 
+        [this](ConnectionID _connectionId) {
+            return m_channelManager->hasDataToWrite(_connectionId);
+        };
+    connectionManCallbacks.onWritePacket = 
         [this](ConnectionID _connectionId, SequenceNumber _sequenceNumber, Buffer& _data) {
-            m_channelManager.onWritePacket(_connectionId, _sequenceNumber, _data);
+            m_channelManager->onWritePacket(_connectionId, _sequenceNumber, _data);
         };
-    pmCallbacks.onReadPacket =
+    connectionManCallbacks.onReadPacket = 
         [this](ConnectionID _connectionId, SequenceNumber _sequenceNumber, Buffer& _data) {
-            m_channelManager.onReadPacket(_connectionId, _sequenceNumber, _data);
+            m_channelManager->onReadPacket(_connectionId, _sequenceNumber, _data);
         };
-    pmCallbacks.onPacketAcked =
+
+    PacketManagerCallbacks packetManCallbacks;
+    packetManCallbacks.onPacketAcked =
         [this](ConnectionID _connectionId, const std::unordered_set<SequenceNumber>& _ackedSequenceArray) {
-            m_channelManager.onPacketAcked(_connectionId, _ackedSequenceArray);
+            m_channelManager->onPacketAcked(_connectionId, _ackedSequenceArray);
         };
 
-    m_packetManager.init(pmCallbacks);  // TODO to redo the init (not to forget anything)
-
-    ChannelManagerCallbacks chanManCallbacks;
-
-    chanManCallbacks.onReceive =
+    ChannelManagerCallbacks channelManCallbacks;
+    channelManCallbacks.onReceive =
         [this](NetworkMessage&& _message) {
             m_callbacks.onReceived(std::move(_message));
         };
-    m_channelManager.init(chanManCallbacks);
+
+    m_connectionManager = std::make_unique<ConnectionManager>(_config, m_systemClock, connectionManCallbacks);
+    m_packetManager = std::make_unique<PacketManager>(m_systemClock, packetManCallbacks);
+    m_channelManager = std::make_unique<ChannelManager>(_config, m_systemClock, channelManCallbacks);
+
+    m_systemClock.restart();
 }
 
 void NSFImpl::updateReceive()
 {
-    sf::Time elapsed = m_deltaClock.restart();
-    m_connectionManager.receive(elapsed);
+    m_connectionManager->updateReceive();
 
-    m_channelManager.deliverMessages();
+    m_channelManager->deliverMessages();
 }
 
 void NSFImpl::updateSend()
 {
-    m_packetManager.sendAll();
+    m_connectionManager->updateSend();
 }
 
 void NSFImpl::send(NetworkMessage&& _message)
 {
-    m_channelManager.send(std::move(_message));
+    m_channelManager->send(std::move(_message));
 }
 
 void NSFImpl::connect(NetworkAddress _address)
 {
-    m_connectionManager.connect(_address);
+    m_connectionManager->connect(_address);
 }
 
 void NSFImpl::disconnect()
 {
-    m_connectionManager.disconnect();
+    m_connectionManager->disconnect();
 }
 
 bool NSFImpl::isServer() const
@@ -119,12 +113,12 @@ PeerID NSFImpl::getServerPeerId() const
 
 NetworkAddress NSFImpl::getPublicAddress() const
 {
-    return m_connectionManager.getPublicAddress();
+    return m_connectionManager->getPublicAddress();
 }
 
 NetworkAddress NSFImpl::getLocalAddress() const
 {
-    return m_connectionManager.getLocalAddress();
+    return m_connectionManager->getLocalAddress();
 }
 
 } // namespace nsf

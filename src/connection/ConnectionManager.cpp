@@ -10,18 +10,17 @@
 
 #include <SFML/Network.hpp>
 
+#include <bitset>
+
 namespace nsf
 {
 
-ConnectionManager::ConnectionManager(const Config& _config)
+ConnectionManager::ConnectionManager(const Config& _config, const sf::Clock& _systemClock, ConnectionManagerCallbacks _callbacks)
     : UdpSocket(_config)
     , m_isServer{_config.isServer}
+    , m_systemClock{_systemClock}
+    , m_callbacks{_callbacks}
 {
-}
-
-void ConnectionManager::init(ConnectionManagerCallbacks _callbacks)
-{
-    m_callbacks = _callbacks;
 }
 
 void ConnectionManager::connect(NetworkAddress _hostAddress)
@@ -54,23 +53,30 @@ void ConnectionManager::disconnect()
     NSF_ASSERT(false, "To implement");
 }
 
-void ConnectionManager::receive(sf::Time _dt)
+void ConnectionManager::updateReceive()
 {
-    UdpSocket::receive(); // receive
-    updateConnections(_dt);
-
-    // UdpSocket send
+    sf::Time systemTime = m_systemClock.getElapsedTime();
+    UdpSocket::receive();
+    updateConnections(systemTime);
 }
 
-void ConnectionManager::send(ConnectionID _connectionId, Buffer& _data)
+void ConnectionManager::updateSend()
 {
-    if (auto* connection = getConnection(_connectionId))
+    for (Connection& connection : m_connections)
     {
-        UdpSocket::send(_data, connection->getAddress());
-    }
-    else
-    {
-        NSF_LOG_ERROR("ConnectionManager::There is no connection with such id: " << _connectionId);
+        while (m_callbacks.haveDataToSend(connection.getConnectionId()))
+        {
+            Buffer buffer;
+
+            auto [currentSequenceNum, lastReceivedSequenceNumber, ackBits] = m_callbacks.onSendPacket(connection.getConnectionId());
+
+            PacketHeader header(InternalPacketType::USER_PACKET, currentSequenceNum, lastReceivedSequenceNumber, ackBits);
+            header.serialize(buffer);
+
+            m_callbacks.onWritePacket(connection.getConnectionId(), currentSequenceNum, buffer);
+
+            UdpSocket::send(buffer, connection.getAddress());
+        }
     }
 }
 
@@ -105,7 +111,7 @@ const Connection* ConnectionManager::getConnection(ConnectionID _connectionId) c
     return nullptr;
 }
 
-void ConnectionManager::updateConnections(sf::Time _dt)
+void ConnectionManager::updateConnections(sf::Time _systemTime)
 {
     for (auto& connection : m_connections)
     {
@@ -113,17 +119,17 @@ void ConnectionManager::updateConnections(sf::Time _dt)
         {
         case Connection::Status::REQUESTING_CONNECTION:
         {
-            processRequestingConnectionState(connection, _dt);
+            processRequestingConnectionState(connection, _systemTime);
             break;
         }
         case Connection::Status::DECIDING_CONNECTION:
         {
-            processDecidingConnectionState(connection, _dt);
+            processDecidingConnectionState(connection, _systemTime);
             break;
         }
         case Connection::Status::CONNECTED:
         {
-            processConnectedState(connection, _dt);
+            processConnectedState(connection, _systemTime);
             break;
         }
         
@@ -133,7 +139,7 @@ void ConnectionManager::updateConnections(sf::Time _dt)
     }
 }
 
-void ConnectionManager::processRequestingConnectionState(Connection& _connection, sf::Time _dt)
+void ConnectionManager::processRequestingConnectionState(Connection& _connection, sf::Time _systemTime)
 {
     if (_connection.m_connectionAccepted)
     {
@@ -141,9 +147,13 @@ void ConnectionManager::processRequestingConnectionState(Connection& _connection
         onConnected(_connection);
         return;
     }
-    _connection.m_timeout -= _dt.asSeconds();
-    if (_connection.m_timeout > 0.f)
-        return;
+
+    sf::Int32 systemTimeMs = _systemTime.asMilliseconds();
+    if (_connection.m_connectionRequestSentTimeMs != 0 &&
+        systemTimeMs - _connection.m_connectionRequestSentTimeMs < DEFAULT_TIME_AFTER_RETRY_CONNECT_ms)
+    {
+        return;   
+    }
 
     --_connection.m_connectionAttemptsLeft;
     if (_connection.m_connectionAttemptsLeft <= 0)
@@ -155,19 +165,19 @@ void ConnectionManager::processRequestingConnectionState(Connection& _connection
     }
     else
     {
-        _connection.m_timeout = DEFAULT_TIME_AFTER_RETRY_CONNECT_s;
+        _connection.m_connectionRequestSentTimeMs = systemTimeMs;
 
         sf::Packet packet;
         PacketHeader header(InternalPacketType::CONNECT_REQUEST); 
-        NSF_LOG_DEBUG("ConnectionManager::Send a connect request to " << m_address.toString());  
+        NSF_LOG("ConnectionManager::Send a connect request to " << _connection.getAddress().toString());  
         header.serialize(packet);
         UdpSocket::send(packet, _connection.m_address);
     }
 }
 
-void ConnectionManager::processDecidingConnectionState(Connection& _connection, sf::Time _dt)
+void ConnectionManager::processDecidingConnectionState(Connection& _connection, sf::Time _systemTime)
 {
-    NSF_UNUSED(_dt);
+    NSF_UNUSED(_systemTime);
      // Accept the connection right away
     NSF_LOG("ConnectionManager::Accept the connection " << _connection.m_address.toString());  
 
@@ -180,9 +190,9 @@ void ConnectionManager::processDecidingConnectionState(Connection& _connection, 
     onConnected(_connection);
 }
 
-void ConnectionManager::processConnectedState(Connection& _connection, sf::Time _dt)
+void ConnectionManager::processConnectedState(Connection& _connection, sf::Time _systemTime)
 {
-    NSF_UNUSED(_connection); NSF_UNUSED(_dt);
+    NSF_UNUSED(_connection); NSF_UNUSED(_systemTime);
 }
 
 
@@ -286,7 +296,8 @@ void ConnectionManager::onReceivePacket(sf::Packet& _packet, NetworkAddress _sen
         }
     //    NSF_LOG("Received from " << _senderAddress.toString());
 
-        m_callbacks.onReceive(senderConnection->getConnectionId(), header, _packet);
+        m_callbacks.onReadPacket(senderConnection->getConnectionId(), header.sequenceNum, _packet);
+        m_callbacks.onReceivePacket(senderConnection->getConnectionId(), header);
 
         break;
     }

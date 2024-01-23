@@ -2,6 +2,7 @@
 #include "connection/Connection.hpp"
 #include "connection/InternalPacketType.hpp"
 #include "connection/PacketHeader.hpp"
+#include "utils/Assert.hpp"
 #include "utils/Logging.hpp"
 #include "utils/Utils.hpp"
 #include "Constants.hpp"
@@ -13,37 +14,24 @@
 namespace nsf
 {
  
-PacketManager::PacketManager(const sf::Clock& _systemClock)
+PacketManager::PacketManager(const sf::Clock& _systemClock, PacketManagerCallbacks _callbacks)
     : m_systemClock{_systemClock}
+    , m_callbacks{_callbacks}
 {
 }
 
-PacketManager::~PacketManager()
-{
-}
-
-void PacketManager::init(PacketManagerCallbacks _callbacks)
-{
-    m_callbacks = _callbacks;
-}
-
-void PacketManager::receive(ConnectionID _connectionId, PacketHeader _header, Buffer& _buffer)
+void PacketManager::onReceivePacket(ConnectionID _connectionId, PacketHeader _header)
 {
     PacketPeer* peer = getPeer(_connectionId);
     if(!peer)
     {
-        NSF_LOG("PacketManager::There is no peer with such id: " << _connectionId);
+        NSF_LOG_ERROR("PacketManager::There is no peer with such id: " << _connectionId);
+        NSF_ASSERT(false, "There is no peer with such id");
         return;
     }
 
-    
-
     peer->onReceivePacket(PacketData{0.0, _header.sequenceNum, PacketData::State::RECEIVED});
-
-    // I don't see a need to go inside the packet manager to just call this callback
-    // TODO Can I move some logic to ConnectionManager ??
-    m_callbacks.onReadPacket(_connectionId, _header.sequenceNum, _buffer);
-
+    
     float time = m_systemClock.getElapsedTime().asSeconds();
     std::unordered_set<SequenceNumber> ackedSequenceArray = peer->processAckBits(_header.ack, _header.ackBits, time);
 
@@ -53,36 +41,33 @@ void PacketManager::receive(ConnectionID _connectionId, PacketHeader _header, Bu
         m_callbacks.onPacketAcked(_connectionId, ackedSequenceArray);
 }
 
-void PacketManager::sendAll()
+std::tuple<SequenceNumber, SequenceNumber, AckBits> PacketManager::onSendPacket(ConnectionID _connectionId)
 {
-    for (PacketPeer& peer : m_peers)
+    PacketPeer* peer = getPeer(_connectionId);
+    if(!peer)
     {
-        while (m_callbacks.haveDataToSend(peer.m_connectionId))
-        {
-            
-            sf::Packet packet;
-            SequenceNumber currentSequenceNum = peer.m_sequenceNumberGenerator;
-
-            peer.onSendPacket(PacketData{m_systemClock.getElapsedTime().asSeconds(), currentSequenceNum, PacketData::State::EMPTY}); // TODO time // TODO .acked = false 
-            AckBits ackBits = peer.generateAckBits();
-            PacketHeader header(InternalPacketType::USER_PACKET, currentSequenceNum, peer.m_receivedSequenceNumber, ackBits);
-            header.serialize(packet);
-
-            m_callbacks.onWritePacket(peer.m_connectionId, currentSequenceNum, packet);
-
-            NSF_LOG_DEBUG("PacketManager:: send, \tseq: " << currentSequenceNum << " ack: " << peer.m_receivedSequenceNumber << " bits: " << std::bitset<32>{ackBits});
-            m_callbacks.onSend(peer.m_connectionId, packet);
-            
-            peer.m_sequenceNumberGenerator++;
-        }
+        NSF_LOG_ERROR("PacketManager::There is no peer with such id: " << _connectionId);
+        NSF_ASSERT(false, "There is no peer with such id");
+        return {};
     }
+
+    SequenceNumber currentSequenceNum = peer->m_sequenceNumberGenerator;
+    peer->m_sequenceNumberGenerator++;
+
+    peer->onSendPacket(PacketData{m_systemClock.getElapsedTime().asSeconds(), currentSequenceNum, PacketData::State::EMPTY});
+    AckBits ackBits = peer->generateAckBits();
+
+    NSF_LOG_DEBUG("PacketManager:: send, \tseq: " << currentSequenceNum << " ack: " << peer->m_receivedSequenceNumber << " bits: " << std::bitset<32>{ackBits});
+
+    return {currentSequenceNum, peer->m_receivedSequenceNumber ,ackBits};
 }
 
 void PacketManager::onConnected(Connection& _connection)
 {
     if (getPeer(_connection.getConnectionId()))
     {
-        NSF_LOG("PacketManager::Peer already exists " << _connection.getConnectionId());
+        NSF_LOG_ERROR("PacketManager::Peer already exists " << _connection.getConnectionId());
+        NSF_ASSERT(false, "Peer already exists");
         return;
     }
 
@@ -95,7 +80,8 @@ void PacketManager::onDisconnected(Connection& _connection)
 {
     if (!getPeer(_connection.getConnectionId()))
     {
-        NSF_LOG("PacketManager::Peer doesn't exist " << _connection.getConnectionId());
+        NSF_LOG_ERROR("PacketManager::Peer doesn't exist " << _connection.getConnectionId());
+        NSF_ASSERT(false, "Peer doesn't exist ");
         return;
     }
 
@@ -104,7 +90,6 @@ void PacketManager::onDisconnected(Connection& _connection)
             return _peer.m_connectionId == _connection.getConnectionId();
     }), m_peers.end());
 }
-
 
 PacketManager::PacketPeer* PacketManager::getPeer(ConnectionID _connectionId)
 {

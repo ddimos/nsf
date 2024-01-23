@@ -7,17 +7,13 @@
 namespace nsf
 {
 
-ChannelManager::ChannelManager(const Config& _config, const sf::Clock& _systemClock)
+ChannelManager::ChannelManager(const Config& _config, const sf::Clock& _systemClock, ChannelManagerCallbacks _callbacks)
     : m_systemClock{_systemClock}
+    , m_callbacks{_callbacks}
     , m_timeAfterResendReliableMessageMs{_config.timeAfterResendReliableMessageMs}
 {
     if (m_timeAfterResendReliableMessageMs == 0)
         m_timeAfterResendReliableMessageMs = DEFAULT_TIME_AFTER_RESEND_RELIABLE_MESSAGE_ms;
-}
-
-void ChannelManager::init(ChannelManagerCallbacks _callbacks)
-{
-    m_callbacks = _callbacks;
 }
 
 void ChannelManager::send(NetworkMessage&& _message)

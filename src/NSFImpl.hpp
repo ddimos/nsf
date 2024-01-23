@@ -8,6 +8,7 @@
 #include "connection/ConnectionManager.hpp"
 #include "packetManager/PacketManager.hpp"
 
+#include <memory>
 #include <queue>
 
 namespace nsf
@@ -36,12 +37,13 @@ private:
     sf::Clock m_systemClock;
     sf::Clock m_deltaClock;
 
-    ConnectionManager m_connectionManager;
-    PacketManager m_packetManager;
-    ChannelManager m_channelManager;
-
     Config m_config{};
     NSFCallbacks m_callbacks{};
+
+    // TODO make interfaces for these classes
+    std::unique_ptr<ConnectionManager> m_connectionManager;
+    std::unique_ptr<PacketManager> m_packetManager;
+    std::unique_ptr<ChannelManager> m_channelManager;
 };
 
 } // namespace nsf

@@ -22,10 +22,8 @@ struct ChannelManagerCallbacks
 class ChannelManager
 {
 public:
-    ChannelManager(const Config& _config, const sf::Clock& _systemClock);
+    ChannelManager(const Config& _config, const sf::Clock& _systemClock, ChannelManagerCallbacks _callbacks);
     ~ChannelManager() = default;
-
-    void init(ChannelManagerCallbacks _callbacks);
 
     void send(NetworkMessage&& _message);
     void deliverMessages();

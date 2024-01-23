@@ -2,9 +2,10 @@
 #include "connection/PacketHeader.hpp"
 #include "InternalTypes.hpp"
 
-#include <vector>
-#include <unordered_set>
 #include <functional>
+#include <tuple>
+#include <unordered_set>
+#include <vector>
 
 // The acknowledgment algorithm is taken from 
 // https://gafferongames.com/post/reliable_ordered_messages/
@@ -17,29 +18,20 @@ class Connection;
 
 struct PacketManagerCallbacks
 {
-    std::function<void(ConnectionID, Buffer&)> onSend{};
-
-    std::function<bool(ConnectionID)> haveDataToSend{};
-    std::function<void(ConnectionID, SequenceNumber, Buffer&)> onWritePacket{};
-    std::function<void(ConnectionID, SequenceNumber, Buffer&)> onReadPacket{};
     std::function<void(ConnectionID, const std::unordered_set<SequenceNumber>&)> onPacketAcked{};
-
 };
 
 class PacketManager
 {
 public:
-    PacketManager(const sf::Clock& _systemClock);
-    ~PacketManager();
+    PacketManager(const sf::Clock& _systemClock, PacketManagerCallbacks _callbacks);
+    ~PacketManager() = default;
 
-    void init(PacketManagerCallbacks _callbacks);
-
-    void receive(ConnectionID _connectionId, PacketHeader _header, Buffer& _buffer);
-    void sendAll(); // it could be generatePacket 
+    void onReceivePacket(ConnectionID _connectionId, PacketHeader _header);
+    std::tuple<SequenceNumber, SequenceNumber, AckBits> onSendPacket(ConnectionID _connectionId);
 
     void onConnected(Connection& _connection);
     void onDisconnected(Connection& _connection);
-
 private:
     
     struct PacketData
@@ -85,11 +77,10 @@ private:
 
     PacketPeer* getPeer(ConnectionID _connectionId);
 
-    std::vector<PacketPeer> m_peers;
-    PacketManagerCallbacks m_callbacks;
-
     const sf::Clock& m_systemClock;
-    
+
+    PacketManagerCallbacks m_callbacks;
+    std::vector<PacketPeer> m_peers;
 };
 
 } // namespace nsf

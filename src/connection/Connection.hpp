@@ -36,7 +36,7 @@ private:
 
     NetworkAddress m_address = {};
     Status m_status = Status::None;
-    float m_timeout = 0.f;
+    unsigned m_connectionRequestSentTimeMs = 0u;
     int m_connectionAttemptsLeft = 0;
     float m_heartbeat = 0.f;
 
