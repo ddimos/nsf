@@ -19,7 +19,7 @@ public:
 
         CONNECTION_FAILED,
         DISCONNECTING,
-        DOWN
+        DISCONNECTED
 
         // TODO
         // CONNECTION_REFUSED,
@@ -38,7 +38,8 @@ private:
     Status m_status = Status::None;
     unsigned m_connectionRequestSentTimeMs = 0u;
     int m_connectionAttemptsLeft = 0;
-    float m_heartbeat = 0.f;
+    uint32_t m_heartbeatSentTimeMs = 0;
+    uint32_t m_heartbeatReceivedTimeMs = 0;
 
     bool m_connectionAccepted = false;
 

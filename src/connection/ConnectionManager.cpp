@@ -55,15 +55,17 @@ void ConnectionManager::disconnect()
 
 void ConnectionManager::updateReceive()
 {
-    sf::Time systemTime = m_systemClock.getElapsedTime();
     UdpSocket::receive();
+    sf::Time systemTime = m_systemClock.getElapsedTime();
     updateConnections(systemTime);
 }
 
 void ConnectionManager::updateSend()
 {
+    sf::Int32 systemTimeMs = m_systemClock.getElapsedTime().asMilliseconds();
     for (Connection& connection : m_connections)
     {
+        bool sent = false;
         while (m_callbacks.haveDataToSend(connection.getConnectionId()))
         {
             Buffer buffer;
@@ -75,7 +77,15 @@ void ConnectionManager::updateSend()
 
             m_callbacks.onWritePacket(connection.getConnectionId(), currentSequenceNum, buffer);
 
+            NSF_LOG("ConnectionManager::Send to " << connection.getConnectionId() << ". Time: " << systemTimeMs);
             UdpSocket::send(buffer, connection.getAddress());
+
+            sent = true;
+        }
+
+        if (sent)
+        {
+            connection.m_heartbeatSentTimeMs = systemTimeMs;
         }
     }
 }
@@ -192,12 +202,35 @@ void ConnectionManager::processDecidingConnectionState(Connection& _connection, 
 
 void ConnectionManager::processConnectedState(Connection& _connection, sf::Time _systemTime)
 {
-    NSF_UNUSED(_connection); NSF_UNUSED(_systemTime);
-}
+    uint32_t systemTimeMs = static_cast<uint32_t>(_systemTime.asMilliseconds());
 
+    NSF_ASSERT(systemTimeMs >= _connection.m_heartbeatSentTimeMs, "System time should be greater.");
+    if (systemTimeMs - _connection.m_heartbeatSentTimeMs > DEFAULT_TIME_AFTER_SEND_HEARTBEAT_ms)
+    {
+        // debug
+        NSF_LOG("ConnectionManager::Send a heartbeat to " << _connection.getConnectionId() << ". Time: " << systemTimeMs);  
+
+        sf::Packet packet;
+        PacketHeader header(InternalPacketType::HEARTBEAT); 
+        header.serialize(packet);
+        UdpSocket::send(packet, _connection.m_address);
+
+        _connection.m_heartbeatSentTimeMs = systemTimeMs;
+    }
+
+    NSF_ASSERT(systemTimeMs >= _connection.m_heartbeatReceivedTimeMs, "System time should be greater.");
+    if (systemTimeMs - _connection.m_heartbeatReceivedTimeMs > DEFAULT_HEARTBEAT_TIMEOUT_ms)
+    {
+        // debug
+        NSF_LOG("ConnectionManager::Disconnect from " << _connection.getConnectionId() << ". Timeout." << " Time: " << systemTimeMs);
+        _connection.m_status = Connection::Status::DISCONNECTED;
+    }
+}
 
 void ConnectionManager::onReceivePacket(sf::Packet& _packet, NetworkAddress _senderAddress)
 {
+    const sf::Int32 systemTimeMs = m_systemClock.getElapsedTime().asMilliseconds();
+
     Connection* senderConnection = getConnection(_senderAddress);
  
     PacketHeader header;
@@ -235,16 +268,13 @@ void ConnectionManager::onReceivePacket(sf::Packet& _packet, NetworkAddress _sen
         }
         else if (senderConnection->getStatus() != Connection::Status::REQUESTING_CONNECTION)
         {
-            NSF_LOG_ERROR("ConnectionManager::The status of " << _senderAddress.toString() << " isn't REQUESTING_CONNECTION");
+            NSF_LOG_ERROR("ConnectionManager::The status of " << senderConnection->getConnectionId() << " isn't REQUESTING_CONNECTION");
             break;
         }
-        NSF_LOG("ConnectionManager::CONNECT_ACCEPT received from " << _senderAddress.toString());
+        NSF_LOG("ConnectionManager::CONNECT_ACCEPT received from " << senderConnection->getConnectionId());
 
-        //senderConnection->onConnectionAccepted();
         senderConnection->m_connectionAccepted = true;
-
-        // senderPeer->onConnectionAcceptReceived();
-        // onConnect(*senderPeer);
+        senderConnection->m_heartbeatReceivedTimeMs = systemTimeMs;
         break;
     }
     case InternalPacketType::DISCONNECT:
@@ -254,51 +284,54 @@ void ConnectionManager::onReceivePacket(sf::Packet& _packet, NetworkAddress _sen
             NSF_LOG("ConnectionManager::DISCONNECT received from " << _senderAddress.toString() << " who is not in the list of peers");
             break;
         }
-        else if (senderConnection->getStatus() == Connection::Status::DOWN)
+        else if (senderConnection->getStatus() == Connection::Status::DISCONNECTED)
         {
-            NSF_LOG_ERROR("ConnectionManager::The status of " << _senderAddress.toString() << " is already DOWN");
+            NSF_LOG_ERROR("ConnectionManager::The status of " << senderConnection->getConnectionId() << " is already DISCONNECTED");
             break;
         }
 
-        NSF_LOG("ConnectionManager::DISCONNECT received from " << _senderAddress.toString());
-        // senderPeer->close(true);
+        NSF_LOG("ConnectionManager::DISCONNECT received from " << senderConnection->getConnectionId());
+        // TODO
         break;
     }
     case InternalPacketType::HEARTBEAT:
     {
-        // TODO
-        // if (!senderConnection)
-        // {
-        //     NSF_LOG_ERROR("Received from " + _senderAddress.toString() + " who is not in the list of peers");
-        //     break;
-        // }
-        // else if (senderConnection->getStatus() == Connection::Status::CONNECTING)
-        // {
-        //     senderConnection->onConnectionAcceptReceived();
-        //     onConnect(*senderConnection);
-        //     //NSF_LOG("Received a heartbeat from " + _senderAddress.toString() + " while waiting for connection accept");
-        // }
-        // else if (!senderConnection->isUp())
-        // {
-        //     //NSF_LOG_ERROR("Received from " + _senderAddress.toString() + " who is not UP");
-        //     break;
-        // }
-        // senderPeer->onHeartbeatReceived();
-        // //NSF_LOG_DEBUG("Received a heartbeat from " + _senderAddress.toString());
+        if (!senderConnection)
+        {
+            NSF_LOG_ERROR("ConnectionManager::Received from " << _senderAddress.toString() << " who is not in the list of peers");
+            break;
+        }
+        else if (senderConnection->getStatus() == Connection::Status::REQUESTING_CONNECTION)
+        {
+            senderConnection->m_connectionAccepted = true;
+            NSF_LOG("ConnectionManager::Received a heartbeat from " << senderConnection->getConnectionId() << " while waiting for connection accept");
+        }
+        else if (senderConnection->getStatus() != Connection::Status::CONNECTED)
+        {
+            NSF_LOG_ERROR("ConnectionManager::Received from " << senderConnection->getConnectionId() << " who is not UP");
+            break;
+        }
+        NSF_LOG("ConnectionManager::Received a heartbeat from " << senderConnection->getConnectionId());
+        senderConnection->m_heartbeatReceivedTimeMs = systemTimeMs;
         break;
     }
     case InternalPacketType::USER_PACKET:
     {
         if (!senderConnection || senderConnection->getStatus() != Connection::Status::CONNECTED)
         {
-            NSF_LOG("ConnectionManager::Received from " << _senderAddress.toString() << " who is not in the list of connections or not yet ready.");
+            NSF_LOG_ERROR("ConnectionManager::Received from " << _senderAddress.toString() << " who is not in the list of connections or not yet ready.");
+            // There might be a situation when a USER_PACKET arrives before a CONNECT_ACCEPT (the connection state will be REQUESTING_CONNECTION). 
+            // Then I could accept the packet, but I have to deal with the order of callbacks.
+            // onConnected should be called before onReadPacket/onReceivePacket.
+            // TODO 
             break;
         }
-    //    NSF_LOG("Received from " << _senderAddress.toString());
+        NSF_LOG("ConnectionManager::Received from " << senderConnection->getConnectionId() << ". Time: " << systemTimeMs);
 
         m_callbacks.onReadPacket(senderConnection->getConnectionId(), header.sequenceNum, _packet);
         m_callbacks.onReceivePacket(senderConnection->getConnectionId(), header);
 
+        senderConnection->m_heartbeatReceivedTimeMs = systemTimeMs;
         break;
     }
     default:

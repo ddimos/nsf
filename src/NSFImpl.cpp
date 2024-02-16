@@ -77,7 +77,7 @@ void NSFImpl::updateReceive()
 {
     m_connectionManager->updateReceive();
 
-    m_channelManager->deliverMessages();
+    m_channelManager->updateReceive();
 }
 
 void NSFImpl::updateSend()

@@ -25,8 +25,9 @@ public:
     ChannelManager(const Config& _config, const sf::Clock& _systemClock, ChannelManagerCallbacks _callbacks);
     ~ChannelManager() = default;
 
+    void updateReceive();
+    
     void send(NetworkMessage&& _message);
-    void deliverMessages();
 
     void onConnected(Connection& _connection);
     void onDisconnected(Connection& _connection);
@@ -38,6 +39,8 @@ public:
     void onPacketAcked(ConnectionID _connectionId, const std::unordered_set<SequenceNumber>& _ackedSequenceArray);
 
 private:
+    void deliverMessages();
+    
     Peer* getPeer(PeerID _peerId);
     const Peer* getPeer(PeerID _peerId) const;
 

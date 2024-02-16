@@ -42,6 +42,16 @@ void ChannelManager::send(NetworkMessage&& _message)
     }
 }
 
+void ChannelManager::updateReceive()
+{
+    deliverMessages();
+
+    for (Peer& peer : m_peers)
+    {
+        peer.m_hasReliableDataToSendInTheCurrentFrame = !peer.m_reliableMessagesToSend.empty();
+    }
+}
+
 void ChannelManager::deliverMessages()
 {
     auto deliverFunc = [this](std::queue<NetworkMessage>& _messages){
@@ -56,8 +66,6 @@ void ChannelManager::deliverMessages()
     {
         deliverFunc(peer.m_reliableMessagesToDeliver);
         deliverFunc(peer.m_unreliableMessagesToDeliver);
-
-        peer.m_hasReliableDataToSendInTheCurrentFrame = !peer.m_reliableMessagesToSend.empty();
     }
 }
 
