@@ -25,7 +25,7 @@ public:
     void send(NetworkMessage&& _message) override;
 
     void connect(NetworkAddress _address) override;
-    void disconnect() override;
+    void disconnect(PeerID _peerId = PEER_ID_INVALID) override;
 
     bool isServer() const override;
     PeerID getServerPeerId() const override;

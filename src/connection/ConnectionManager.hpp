@@ -34,7 +34,7 @@ public:
     ConnectionManager(const Config& _config, const sf::Clock& _systemClock, ConnectionManagerCallbacks _callbacks);
 
     void connect(NetworkAddress _hostAddress);
-    void disconnect();
+    void disconnect(ConnectionID _connectionId);
 
     void updateReceive();
     void updateSend();
@@ -43,6 +43,7 @@ private:
     bool isConnectedOrConnecting(NetworkAddress _address) const;
 
     Connection* getConnection(NetworkAddress _address);
+    Connection* getConnection(ConnectionID _connectionId);
     const Connection* getConnection(NetworkAddress _address) const;
     const Connection* getConnection(ConnectionID _connectionId) const;
 
@@ -50,6 +51,7 @@ private:
     void processRequestingConnectionState(Connection& _connection, sf::Time _systemTime);
     void processDecidingConnectionState(Connection& _connection, sf::Time _systemTime);
     void processConnectedState(Connection& _connection, sf::Time _systemTime);
+    void processDisconnectingState(Connection& _connection, sf::Time _systemTime);
 
     void onReceivePacket(sf::Packet& _packet, NetworkAddress _sender) override;
 
@@ -57,6 +59,7 @@ private:
 
     void onConnected(Connection& _connection);
     void onConnectionFailed(Connection& _connection);
+    void onDisconnected(Connection& _connection);
 
     const bool m_isServer = true;
     const sf::Clock& m_systemClock;

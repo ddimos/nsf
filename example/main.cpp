@@ -2,6 +2,8 @@
 
 #include <nsf/NSF.hpp>
 #include <cassert>
+#include <unordered_set>
+
 // #include <SFML/Graphics/RenderWindow.hpp>
 
 constexpr nsf::Port SERVER_PORT = 20475;
@@ -43,6 +45,8 @@ struct TestMessage
 };
 sf::Uint64 TestMessage::TestValue1 = 0;
 
+std::unordered_set<nsf::PeerID> g_peers;
+bool m_tryToConnect = true;
 
 int main(int argc, char **argv)
 {
@@ -63,9 +67,12 @@ int main(int argc, char **argv)
     nsf::NSFCallbacks callbacks;
     callbacks.onConnected = [](nsf::PeerID _peerId){
         std::cout << "--->>>CONNECTED<<<--- " << _peerId << std::endl;
+        g_peers.insert(_peerId);
     };
     callbacks.onDisconnected = [](nsf::PeerID _peerId){
         std::cout << "--->>>DISCONNECTED<<<--- " << _peerId << std::endl;
+        g_peers.erase(_peerId);
+        m_tryToConnect = true;
     };
     callbacks.onReceived = [](nsf::NetworkMessage&& _message){
         TestMessage testMessage;
@@ -78,14 +85,6 @@ int main(int argc, char **argv)
     std::cout << "The public address : " << network->getPublicAddress().toString() << std::endl;
     std::cout << "The local address : "  << network->getLocalAddress().toString() << std::endl;
 
-    if (!isHost)
-    {
-        network->connect(nsf::NetworkAddress(sf::IpAddress("192.168.1.11"), SERVER_PORT));
-    }
-    else
-    {
-
-    }
 
     // sf::RenderWindow m_window;
     // m_window.create(sf::VideoMode(1024, 768), "Planet");
@@ -96,6 +95,7 @@ int main(int argc, char **argv)
     float accumulator = 0.f;
 
     float timeUntilNextMessageS = 5.f;
+    float timeUntilDisconnectS = 8.f;
     while (isRunning)
     {
         sf::Time elapsed = clock.restart();
@@ -111,13 +111,23 @@ int main(int argc, char **argv)
 
             network->updateSend();
         }
+
+        if (!isHost && m_tryToConnect)
+        {
+            network->connect(nsf::NetworkAddress(sf::IpAddress("192.168.1.11"), SERVER_PORT));
+            m_tryToConnect = false;
+        }
         
-        timeUntilNextMessageS -= elapsed.asSeconds();
+        if (!g_peers.empty())
+        {
+            timeUntilNextMessageS -= elapsed.asSeconds();
+            timeUntilDisconnectS -= elapsed.asSeconds();
+        }
 
         if (timeUntilNextMessageS < 0)
         {
-            timeUntilNextMessageS = !isHost ? 0.6 : 0.9;
-        
+            timeUntilNextMessageS = !isHost ? 2:3;
+
             nsf::NetworkMessage message;
             message.m_info = nsf::MessageInfo(true);
             TestMessage testMessage;
@@ -126,6 +136,12 @@ int main(int argc, char **argv)
 
             std::cout << ">Send, data: " << testMessage.field1 << std::endl;
             network->send(std::move(message));
+        }
+
+        if (timeUntilDisconnectS < 0)
+        {
+            network->disconnect();
+            timeUntilDisconnectS = 13;
         }
 
 //      m_window.clear(sf::Color(2, 17, 34));

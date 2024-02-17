@@ -30,7 +30,9 @@ NSFImpl::NSFImpl(const Config& _config, NSFCallbacks _callbacks)
         };
     connectionManCallbacks.onDisconnected = 
         [this](Connection& _connection) {
-            NSF_LOG("TODO disconnect");
+            m_packetManager->onDisconnected(_connection);
+            m_channelManager->onDisconnected(_connection);
+
             m_callbacks.onDisconnected(_connection.getConnectionId());
         };
     connectionManCallbacks.onReceivePacket = 
@@ -95,9 +97,9 @@ void NSFImpl::connect(NetworkAddress _address)
     m_connectionManager->connect(_address);
 }
 
-void NSFImpl::disconnect()
+void NSFImpl::disconnect(PeerID _peerId/*= PEER_ID_INVALID*/)
 {
-    m_connectionManager->disconnect();
+    m_connectionManager->disconnect(_peerId);
 }
 
 bool NSFImpl::isServer() const

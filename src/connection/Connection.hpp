@@ -10,7 +10,7 @@ class ConnectionManager;
 class Connection
 {
 public:
-    enum class Status
+    enum class State
     {
         None,
         REQUESTING_CONNECTION,
@@ -27,21 +27,27 @@ public:
 
     ConnectionID getConnectionId() const { return m_connectionId; }
     NetworkAddress getAddress() const { return m_address; }
-    Status getStatus() const { return m_status; }
+    State getState() const { return m_state; }
+
+    bool isConnected() const { return m_state == State::CONNECTED; }
+    bool isDisconnected() const { return m_state == State::DISCONNECTED; }
 
 private:
     friend class ConnectionManager;
+    
+    void setState(State _state) { m_state = _state; }
 
     ConnectionID m_connectionId = CONNECTION_ID_INVALID;
 
     NetworkAddress m_address = {};
-    Status m_status = Status::None;
+    State m_state = State::None;
     unsigned m_connectionRequestSentTimeMs = 0u;
     int m_connectionAttemptsLeft = 0;
     uint32_t m_heartbeatSentTimeMs = 0;
     uint32_t m_heartbeatReceivedTimeMs = 0;
 
     bool m_connectionAccepted = false;
+    bool m_wasConnected = false;
 
     std::string m_failReason = "";
 };

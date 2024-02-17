@@ -30,7 +30,8 @@ public:
     virtual void send(NetworkMessage&& _message) = 0;
 
     virtual void connect(NetworkAddress _address) = 0;
-    virtual void disconnect() = 0;
+    // Pass PEER_ID_INVALID to disconnect everyone
+    virtual void disconnect(PeerID _peerId = PEER_ID_INVALID) = 0;
 
     virtual bool isServer() const = 0;
     virtual PeerID getServerPeerId() const = 0;
