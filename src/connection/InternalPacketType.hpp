@@ -13,12 +13,6 @@ enum class InternalPacketType : sf::Uint8
     DISCONNECT,
     HEARTBEAT,
     USER_PACKET
-    
-    // TODO
-    // SESSION_JOIN_REQUEST,
-    // SESSION_JOIN_ACCEPT,
-    // SESSION_ON_JOIN,
-    // SESSION_ON_LEAVE,
 };
 
 } // namespace nsf

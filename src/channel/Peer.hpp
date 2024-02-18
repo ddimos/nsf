@@ -13,7 +13,6 @@ namespace nsf
 {
 struct MessageHeader;
 
-    // move this struct
 struct ReliableMessageData
 {
     NetworkMessage message;

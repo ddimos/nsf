@@ -14,9 +14,7 @@ class Connection;
 
 struct ChannelManagerCallbacks
 {
-   // std::function<void(ConnectionID, Buffer&)> onSend{};
     std::function<void(NetworkMessage&& _message)> onReceive{};
-
 };
 
 class ChannelManager

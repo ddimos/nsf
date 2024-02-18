@@ -4,13 +4,14 @@
 #include <cassert>
 #include <unordered_set>
 
-// #include <SFML/Graphics/RenderWindow.hpp>
-
 constexpr nsf::Port SERVER_PORT = 20475;
 constexpr nsf::Port CLIENT_PORT = 20480;
 
 constexpr unsigned UPDATES_PER_SEC = 60;
 constexpr float DT = 1.f / UPDATES_PER_SEC;
+
+constexpr bool TEST_DISCONNECTION = false;
+constexpr int PACKET_DROP_CHANCE = 0; // Each Xth will be dropped
 
 struct TestMessage
 {
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
     nsf::Config config;
     config.port = (isHost) ? SERVER_PORT : CLIENT_PORT;
     config.isServer = isHost;
+    config.packetDropChance = PACKET_DROP_CHANCE; 
     nsf::NSFCallbacks callbacks;
     callbacks.onConnected = [](nsf::PeerID _peerId){
         std::cout << "--->>>CONNECTED<<<--- " << _peerId << std::endl;
@@ -86,10 +88,6 @@ int main(int argc, char **argv)
     std::cout << "The local address : "  << network->getLocalAddress().toString() << std::endl;
 
 
-    // sf::RenderWindow m_window;
-    // m_window.create(sf::VideoMode(1024, 768), "Planet");
-	// m_window.setFramerateLimit(UPDATES_PER_SEC);
-
     bool isRunning = true;
     sf::Clock clock;
     float accumulator = 0.f;
@@ -101,12 +99,10 @@ int main(int argc, char **argv)
         sf::Time elapsed = clock.restart();
         accumulator += elapsed.asSeconds();
 
-//		m_game.update();
         while (accumulator >= DT)
         {
             network->updateReceive();
 
-//		    m_game.fixedUpdate(DT);
             accumulator -= DT;
 
             network->updateSend();
@@ -126,7 +122,7 @@ int main(int argc, char **argv)
 
         if (timeUntilNextMessageS < 0)
         {
-            timeUntilNextMessageS = !isHost ? 2:3;
+            timeUntilNextMessageS = !isHost ? 0.2:0.3;
 
             nsf::NetworkMessage message;
             message.m_info = nsf::MessageInfo(true);
@@ -138,14 +134,10 @@ int main(int argc, char **argv)
             network->send(std::move(message));
         }
 
-        if (timeUntilDisconnectS < 0)
+        if (TEST_DISCONNECTION && timeUntilDisconnectS < 0)
         {
             network->disconnect();
             timeUntilDisconnectS = 13;
         }
-
-//      m_window.clear(sf::Color(2, 17, 34));
-//		m_game.render();
-//      m_window.display();
     }
 }

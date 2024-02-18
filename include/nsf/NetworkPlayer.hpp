@@ -1,9 +1,11 @@
 #pragma once 
-#include <string>
 #include "nsf/Types.hpp"
+#include <string>
 
 namespace nsf
 {
+
+// It isn't used now
 
 class NetworkPlayer
 {

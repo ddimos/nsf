@@ -1,5 +1,7 @@
 #pragma once
 
+#include "nsf/Types.hpp"
+
 #include <SFML/Network.hpp>
 #include <string>
 
@@ -11,11 +13,11 @@ struct NetworkAddress
     NetworkAddress() = default;
     NetworkAddress(sf::IpAddress _ip) 
         : address(_ip) {}
-    NetworkAddress(sf::IpAddress _ip, unsigned short _port) 
+    NetworkAddress(sf::IpAddress _ip, Port _port) 
         : address(_ip), port(_port) {}
 
     sf::IpAddress   address = {};
-    unsigned short  port = 0;
+    Port            port = PORT_INVALID;
     std::string toString() const { return address.toString()+":"+std::to_string(port); }
 };
 inline bool operator==(const NetworkAddress& _lhs, const NetworkAddress& _rhs)

@@ -6,7 +6,6 @@
 
 namespace nsf
 {
-
     using Port = unsigned short;
     using PeerID = sf::Uint16;
     using PlayerID = sf::Uint16;
