@@ -5,12 +5,12 @@ project("nsf"
     DESCRIPTION "Network SFML"
     )
 
-find_package(SFML 2.5 COMPONENTS network REQUIRED)
-# include(FetchContent)
-# FetchContent_Declare(SFML
-#     GIT_REPOSITORY https://github.com/SFML/SFML.git
-#     GIT_TAG 2.6.x)
-# FetchContent_MakeAvailable(SFML)
+# find_package(SFML 2.6 COMPONENTS network REQUIRED)
+include(FetchContent)
+FetchContent_Declare(SFML
+    GIT_REPOSITORY https://github.com/SFML/SFML.git
+    GIT_TAG 2.6.x)
+FetchContent_MakeAvailable(SFML)
 
 option(NSF_BUILD_EXAMPLE "Build the nsf example" ON)
 
