@@ -186,8 +186,6 @@ void ConnectionManager::processRequestingConnectionState(Connection& _connection
 {
     if (_connection.m_connectionAccepted)
     {
-        _connection.setState(Connection::State::CONNECTED);
-        onConnected(_connection);
         return;
     }
 
@@ -321,6 +319,9 @@ void ConnectionManager::onReceivePacket(sf::Packet& _packet, NetworkAddress _sen
         }
         NSF_LOG("ConnectionManager::CONNECT_ACCEPT received from " << senderConnection->getConnectionId());
 
+        // TODO I could try to stop processing more packets until the next frame instead of calling onConnected callback here.
+        senderConnection->setState(Connection::State::CONNECTED);
+        onConnected(*senderConnection);
         senderConnection->m_connectionAccepted = true;
         senderConnection->m_heartbeatReceivedTimeMs = systemTimeMs;
         break;
@@ -351,6 +352,8 @@ void ConnectionManager::onReceivePacket(sf::Packet& _packet, NetworkAddress _sen
         }
         else if (senderConnection->getState() == Connection::State::REQUESTING_CONNECTION)
         {
+            senderConnection->setState(Connection::State::CONNECTED);
+            onConnected(*senderConnection);
             senderConnection->m_connectionAccepted = true;
             NSF_LOG("ConnectionManager::Received a heartbeat from " << senderConnection->getConnectionId() << " while waiting for connection accept");
         }
@@ -368,10 +371,6 @@ void ConnectionManager::onReceivePacket(sf::Packet& _packet, NetworkAddress _sen
         if (!senderConnection || senderConnection->getState() != Connection::State::CONNECTED)
         {
             NSF_LOG_ERROR("ConnectionManager::Received from " << _senderAddress.toString() << " who is not in the list of connections or not yet ready.");
-            // There might be a situation when a USER_PACKET arrives before a CONNECT_ACCEPT (the connection state will be REQUESTING_CONNECTION). 
-            // Then I could accept the packet, but I have to deal with the order of callbacks.
-            // onConnected should be called before onReadPacket/onReceivePacket.
-            // TODO 
             break;
         }
         NSF_LOG_DEBUG("ConnectionManager::Received from " << senderConnection->getConnectionId() << ". Time: " << systemTimeMs);
