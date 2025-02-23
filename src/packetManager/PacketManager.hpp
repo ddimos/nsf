@@ -27,6 +27,8 @@ public:
     PacketManager(const sf::Clock& _systemClock, PacketManagerCallbacks _callbacks);
     ~PacketManager() = default;
 
+    float getRtt(ConnectionID _connectionId) const;
+    
     void onReceivePacket(ConnectionID _connectionId, PacketHeader _header);
     std::tuple<SequenceNumber, SequenceNumber, AckBits> onSendPacket(ConnectionID _connectionId);
 

@@ -20,6 +20,7 @@ NSFImpl::NSFImpl(const Config& _config, NSFCallbacks _callbacks)
     : m_config{_config}
     , m_callbacks{_callbacks}
 {
+    // TODO assert if some configs aren't set
     ConnectionManagerCallbacks connectionManCallbacks;
     connectionManCallbacks.onConnected = 
         [this](Connection& _connection) {
@@ -111,6 +112,11 @@ PeerID NSFImpl::getServerPeerId() const
 {
     NSF_ASSERT(false, "Implement");
     return PEER_ID_INVALID; // TODO implement
+}
+
+float NSFImpl::getRtt(PeerID _peerId) const
+{
+    return m_packetManager->getRtt(_peerId);
 }
 
 NetworkAddress NSFImpl::getPublicAddress() const

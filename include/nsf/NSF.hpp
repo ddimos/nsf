@@ -79,6 +79,14 @@ public:
     virtual PeerID getServerPeerId() const = 0;
 
     //////////////////////////////////////////
+    /// Get a round-trip time of a remote peer in seconds.
+    ///
+    /// \param _peerId      An id of the peer to get the rtt.
+    ///
+    //////////////////////////////////////////
+    virtual float getRtt(PeerID _peerId) const = 0;
+
+    //////////////////////////////////////////
     /// Get the local address and the port the socket is bound to. 
     /// 
     //////////////////////////////////////////

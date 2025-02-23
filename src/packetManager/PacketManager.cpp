@@ -20,6 +20,17 @@ PacketManager::PacketManager(const sf::Clock& _systemClock, PacketManagerCallbac
 {
 }
 
+float PacketManager::getRtt(ConnectionID _connectionId) const
+{
+    for (const PacketPeer& peer : m_peers)
+        if (peer.m_connectionId == _connectionId)
+            return peer.m_rtt;
+    
+    NSF_LOG_ERROR("PacketManager::There is no peer with such id: " << _connectionId);
+    NSF_ASSERT(false, "There is no peer with such id");
+    return 0.f;
+}
+
 void PacketManager::onReceivePacket(ConnectionID _connectionId, PacketHeader _header)
 {
     PacketPeer* peer = getPeer(_connectionId);

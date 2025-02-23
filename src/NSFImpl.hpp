@@ -30,6 +30,8 @@ public:
     bool isServer() const override;
     PeerID getServerPeerId() const override;
 
+    float getRtt(PeerID _peerId) const override;
+
     NetworkAddress getPublicAddress() const override;
     NetworkAddress getLocalAddress() const override;
 
