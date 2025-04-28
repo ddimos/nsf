@@ -5,7 +5,11 @@ project("nsf"
     DESCRIPTION "Network SFML"
     )
 
-find_package(SFML 2.6 COMPONENTS network REQUIRED)
+option(NSF_FIND_SFML "Use find_package to find SFML" ON)
+
+if(NSF_FIND_SFML)
+    find_package(SFML 2.6 COMPONENTS network REQUIRED)
+endif()
 # include(FetchContent)
 # FetchContent_Declare(SFML
 #     GIT_REPOSITORY https://github.com/SFML/SFML.git
